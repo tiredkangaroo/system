@@ -147,10 +147,17 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 		if len(fields) < 5 {
 			continue
 		}
+		skipIndexes := 0
+		if !strings.HasSuffix(fields[0], ".service") { // sometimes the first part of the line is not service name (e.g: ● on failed units)
+			if len(fields) < 6 {
+				continue // cannot parse this line
+			}
+			skipIndexes = 1
+		}
 		info.Services = append(info.Services, system.Service{
-			Name:        fields[0],
-			Status:      fields[3], // sub
-			Description: strings.Join(fields[4:], " "),
+			Name:        fields[skipIndexes],
+			Status:      fields[skipIndexes+3], // sub
+			Description: strings.Join(fields[skipIndexes+4:], " "),
 		})
 	}
 
