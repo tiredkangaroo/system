@@ -43,9 +43,9 @@ type DynamicInfo struct {
 }
 
 type Service struct {
-	PID    int    `json:"pid"`    // process ID
-	Name   string `json:"name"`   // service name
-	Status string `json:"status"` // service status (e.g., running, stopped)
+	Name        string `json:"name"`   // service name
+	Status      string `json:"status"` // service status (e.g., running, stopped)
+	Description string `json:"description,omitempty"`
 }
 
 type Process struct {

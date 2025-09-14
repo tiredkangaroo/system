@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -131,6 +132,27 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 	info.Uptime, err = host.Uptime()
 	if err != nil {
 		return info, err
+	}
+
+	info.Services = []system.Service{}
+	output, err := exec.Command("systemctl", "list-units", "--type=service", "--state=running,failed").Output()
+	if err != nil {
+		return info, err
+	}
+	lines := strings.Split(string(output), "\n")
+	if len(lines) < 3 {
+		return info, nil
+	}
+	for _, line := range lines[1:] {
+		fields := strings.Fields(line)
+		if len(fields) < 5 {
+			continue
+		}
+		info.Services = append(info.Services, system.Service{
+			Name:        fields[0],
+			Status:      fields[3], // sub
+			Description: strings.Join(fields[4:], " "),
+		})
 	}
 
 	return info, nil
