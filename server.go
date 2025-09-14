@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log/slog"
 	"runtime"
 	"syscall"
 
@@ -63,5 +64,7 @@ func main() {
 		})
 	})
 
-	app.Listen(":9000")
+	if err := app.Listen(":9000"); err != nil {
+		slog.Error("server", "error", err)
+	}
 }
