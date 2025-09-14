@@ -1,7 +1,6 @@
 package linux
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -175,16 +174,6 @@ func getBatteryInfo() (bool, string) {
 		}
 	}
 	return false, ""
-}
-
-func main() {
-	system := &LinuxSystem{}
-	info, err := system.GetSystemInfo()
-	if err != nil {
-		panic(err)
-	}
-	v, _ := json.MarshalIndent(info, "\t", "\t\t")
-	fmt.Println(string(v))
 }
 
 func fieldValueFromProcFile(filename string, field string) (string, error) {
