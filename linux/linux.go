@@ -170,7 +170,7 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 	}
 
 	info.Services = []system.Service{}
-	output, err := exec.Command("systemctl", "list-units", "--type=service", "--state=running,failed").Output()
+	output, err := exec.Command("systemctl", "list-units", "--all", "--type=service", "--state=running,failed,exited,dead").Output()
 	if err != nil {
 		return info, err
 	}
@@ -189,6 +189,9 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 				continue // cannot parse this line
 			}
 			skipIndexes = 1
+		}
+		if fields[skipIndexes+1] != "loaded" {
+			continue // not-found or whatever else may be in this field, ignore
 		}
 		info.Services = append(info.Services, system.Service{
 			Name:        fields[skipIndexes],
