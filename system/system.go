@@ -1,15 +1,14 @@
 package system
 
 import (
-	"bufio"
+	"io"
 	"time"
 )
 
 type System interface {
 	GetSystemInfo() (*SystemInfo, error)
-	GetSystemLogs(logOptions LogOptions) (*bufio.Reader, error)
-	GetServicesLog(logOptions LogOptions) (*bufio.Reader, error)
-	GetServiceLog(serviceName string, logOptions LogOptions) (*bufio.Reader, error)
+	GetSystemLogs(logOptions LogOptions) (io.ReadCloser, error)
+	GetServiceLog(serviceName string, logOptions LogOptions) (io.ReadCloser, error)
 }
 
 type LogOptions struct {

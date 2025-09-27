@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"io"
 	"log/slog"
 	"runtime"
 	"slices"
@@ -97,11 +97,6 @@ func main() {
 		reader, err := sys.GetSystemLogs(logOptions)
 		return sendReader(c, reader, err)
 	})
-	api.Get("/services/logs", func(c *fiber.Ctx) error {
-		logOptions := getLogOptionsFromCtx(c)
-		reader, err := sys.GetServicesLog(logOptions)
-		return sendReader(c, reader, err)
-	})
 	api.Get("/service/:name", func(c *fiber.Ctx) error {
 		info, err := infoService.GetSystemInfo()
 		if err != nil {
@@ -146,7 +141,7 @@ func getLogOptionsFromCtx(c *fiber.Ctx) system.LogOptions {
 	return logOptions
 }
 
-func sendReader(c *fiber.Ctx, reader *bufio.Reader, err error) error {
+func sendReader(c *fiber.Ctx, reader io.ReadCloser, err error) error {
 	if err != nil {
 		return c.JSON(fiber.Map{
 			"error": err.Error(),
