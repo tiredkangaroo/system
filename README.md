@@ -1,0 +1,3 @@
+- add get logs (journalctl -xe, journalctl -u <service_name>)
+- add stop/restart service
+- make ui

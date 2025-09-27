@@ -142,10 +142,10 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 	if len(lines) < 3 {
 		return info, nil
 	}
-	for _, line := range lines[1:] {
+	for _, line := range lines[1:] { // skips over column names
 		fields := strings.Fields(line)
 		if len(fields) < 5 {
-			continue
+			break // end of services list
 		}
 		skipIndexes := 0
 		if !strings.HasSuffix(fields[0], ".service") { // sometimes the first part of the line is not service name (e.g: ● on failed units)
