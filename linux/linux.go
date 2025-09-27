@@ -48,36 +48,35 @@ func (ls LinuxSystem) buildLogArgs(logOptions system.LogOptions) []string {
 	}
 	return a
 }
-func (ls *LinuxSystem) GetSystemLogs(logOptions system.LogOptions) (*bufio.Reader, error) {
-	// journalctl --since=@<timestamp> --until=@<timestamp>
-	a := ls.buildLogArgs(logOptions)
-	pipe, err := exec.Command("journalctl", a...).StdoutPipe()
+func (ls *LinuxSystem) runCmdGetPipe(cmdName string, args ...string) (*bufio.Reader, error) {
+	cmd := exec.Command(cmdName, args...)
+	pipe, err := cmd.StdoutPipe()
 	if err != nil {
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
 		return nil, err
 	}
 	return bufio.NewReader(pipe), nil
 }
+func (ls *LinuxSystem) GetSystemLogs(logOptions system.LogOptions) (*bufio.Reader, error) {
+	// journalctl --since=@<timestamp> --until=@<timestamp>
+	a := ls.buildLogArgs(logOptions)
+	return ls.runCmdGetPipe("journalctl", a...)
+}
 
 func (ls *LinuxSystem) GetServicesLog(logOptions system.LogOptions) (*bufio.Reader, error) {
 	// journalctl -e --since=@<timestamp> --until=@<timestamp>
-	a := []string{"-e"}
+	a := []string{"_SYSTEMD_UNIT=*"}
 	a = append(a, ls.buildLogArgs(logOptions)...)
-	pipe, err := exec.Command("journalctl", a...).StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	return bufio.NewReader(pipe), nil
+	return ls.runCmdGetPipe("journalctl", a...)
 }
 
 func (ls *LinuxSystem) GetServiceLog(serviceName string, logOptions system.LogOptions) (*bufio.Reader, error) {
 	// journalctl -u <serviceName> --since=@<timestamp> --until=@<timestamp>
 	a := []string{"-u", serviceName}
 	a = append(a, ls.buildLogArgs(logOptions)...)
-	pipe, err := exec.Command("journalctl", a...).StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	return bufio.NewReader(pipe), nil
+	return ls.runCmdGetPipe("journalctl", a...)
 }
 
 func getStaticSysInfo() (system.StaticInfo, error) {

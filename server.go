@@ -154,6 +154,6 @@ func sendReader(c *fiber.Ctx, reader *bufio.Reader, err error) error {
 	}
 	c.Set("Content-Type", "text/plain; charset=utf-8")
 	c.Set("Transfer-Encoding", "chunked")
-	c.Context().SetBodyStream(reader, -1)
+	c.SendStream(reader, -1)
 	return nil
 }
