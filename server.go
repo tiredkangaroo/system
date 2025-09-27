@@ -15,6 +15,8 @@ import (
 	"github.com/tiredkangaroo/system/system"
 )
 
+var DEBUG = os.Getenv("DEBUG") == "true"
+
 func main() {
 	var sys system.System
 	switch runtime.GOOS {
@@ -26,16 +28,10 @@ func main() {
 
 	app := fiber.New()
 
-	api := app.Group("/api/v1")
+	api := app.Group("/api/v1", corsMiddleware)
 
 	infoService := system.NewSystemInfoService(sys, time.Second*5)
 
-	privilegeMiddleware := func(c *fiber.Ctx) error {
-		if os.Geteuid() == 0 {
-			return c.Next()
-		}
-		return sendErrorMap(c, fiber.StatusForbidden, errors.New("this action requires root privileges to perform (try running with sudo or as root)"))
-	}
 	api.Get("/info", func(c *fiber.Ctx) error {
 		info, err := infoService.GetSystemInfo()
 		if err != nil {
@@ -158,4 +154,25 @@ func sendErrorMap(c *fiber.Ctx, errStatus int, err error) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"error": nil,
 	})
+}
+
+func corsMiddleware(c *fiber.Ctx) error {
+	if DEBUG {
+		c.Set("Access-Control-Allow-Origin", "*")
+	} else {
+		c.Set("Access-Control-Allow-Origin", "https://tiredkangaroo.github.io")
+	}
+	c.Set("Access-Control-Allow-Methods", "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS")
+	c.Set("Access-Control-Allow-Headers", "Content-Type, Accept")
+	if c.Method() == fiber.MethodOptions {
+		return c.SendStatus(fiber.StatusNoContent)
+	}
+	return c.Next()
+}
+
+func privilegeMiddleware(c *fiber.Ctx) error {
+	if os.Geteuid() == 0 {
+		return c.Next()
+	}
+	return sendErrorMap(c, fiber.StatusForbidden, errors.New("this action requires root privileges to perform (try running with sudo or as root)"))
 }
