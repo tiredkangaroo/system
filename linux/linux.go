@@ -1,6 +1,7 @@
 package linux
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -32,6 +33,51 @@ func (ls *LinuxSystem) GetSystemInfo() (*system.SystemInfo, error) {
 		StaticInfo:  staticInfo,
 		DynamicInfo: dynamicInfo,
 	}, nil
+}
+
+func (ls LinuxSystem) buildLogArgs(logOptions system.LogOptions) []string {
+	a := []string{}
+	if logOptions.ThisBootOnly {
+		a = append(a, "-b")
+	}
+	if logOptions.Since != nil {
+		a = append(a, fmt.Sprintf("--since=@%d", logOptions.Since.Unix()))
+	}
+	if logOptions.Until != nil {
+		a = append(a, fmt.Sprintf("--until=@%d", logOptions.Until.Unix()))
+	}
+	return a
+}
+func (ls *LinuxSystem) GetSystemLogs(logOptions system.LogOptions) (*bufio.Reader, error) {
+	// journalctl --since=@<timestamp> --until=@<timestamp>
+	a := ls.buildLogArgs(logOptions)
+	pipe, err := exec.Command("journalctl", a...).StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	return bufio.NewReader(pipe), nil
+}
+
+func (ls *LinuxSystem) GetServicesLog(logOptions system.LogOptions) (*bufio.Reader, error) {
+	// journalctl -e --since=@<timestamp> --until=@<timestamp>
+	a := []string{"-e"}
+	a = append(a, ls.buildLogArgs(logOptions)...)
+	pipe, err := exec.Command("journalctl", a...).StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	return bufio.NewReader(pipe), nil
+}
+
+func (ls *LinuxSystem) GetServiceLog(serviceName string, logOptions system.LogOptions) (*bufio.Reader, error) {
+	// journalctl -u <serviceName> --since=@<timestamp> --until=@<timestamp>
+	a := []string{"-u", serviceName}
+	a = append(a, ls.buildLogArgs(logOptions)...)
+	pipe, err := exec.Command("journalctl", a...).StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	return bufio.NewReader(pipe), nil
 }
 
 func getStaticSysInfo() (system.StaticInfo, error) {

@@ -1,7 +1,21 @@
 package system
 
+import (
+	"bufio"
+	"time"
+)
+
 type System interface {
 	GetSystemInfo() (*SystemInfo, error)
+	GetSystemLogs(logOptions LogOptions) (*bufio.Reader, error)
+	GetServicesLog(logOptions LogOptions) (*bufio.Reader, error)
+	GetServiceLog(serviceName string, logOptions LogOptions) (*bufio.Reader, error)
+}
+
+type LogOptions struct {
+	Since        *time.Time
+	Until        *time.Time
+	ThisBootOnly bool
 }
 
 type SystemInfo struct {
@@ -52,4 +66,33 @@ type Process struct {
 	PID    int32  `json:"pid"`    // process ID
 	Name   string `json:"name"`   // process name
 	Status string `json:"status"` // process status (e.g., running, sleep, stop, blocked)
+}
+
+const InfoRefreshInterval = 5 * time.Second
+
+type SystemInfoService struct {
+	sys                 System
+	lastInfo            *SystemInfo
+	timeOfLastInfo      time.Time
+	infoRefreshInterval time.Duration
+}
+
+func (s *SystemInfoService) GetSystemInfo() (*SystemInfo, error) {
+	if time.Since(s.timeOfLastInfo) < s.infoRefreshInterval && s.lastInfo != nil {
+		return s.lastInfo, nil
+	}
+	info, err := s.sys.GetSystemInfo()
+	if err != nil {
+		return nil, err
+	}
+	s.lastInfo = info
+	s.timeOfLastInfo = time.Now()
+	return s.lastInfo, nil
+}
+
+func NewSystemInfoService(sys System, infoRefreshInterval time.Duration) *SystemInfoService {
+	return &SystemInfoService{
+		sys:                 sys,
+		infoRefreshInterval: infoRefreshInterval,
+	}
 }
