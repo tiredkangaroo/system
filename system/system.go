@@ -9,6 +9,10 @@ type System interface {
 	GetSystemInfo() (*SystemInfo, error)
 	GetSystemLogs(logOptions LogOptions) (io.ReadCloser, error)
 	GetServiceLog(serviceName string, logOptions LogOptions) (io.ReadCloser, error)
+
+	StartService(serviceName string) error
+	StopService(serviceName string) error
+	RestartService(serviceName string) error
 }
 
 type LogOptions struct {

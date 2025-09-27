@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"log/slog"
+	"os"
 	"runtime"
 	"slices"
 	"syscall"
@@ -28,69 +30,51 @@ func main() {
 
 	infoService := system.NewSystemInfoService(sys, time.Second*5)
 
+	privilegeMiddleware := func(c *fiber.Ctx) error {
+		if os.Geteuid() == 0 {
+			return c.Next()
+		}
+		return sendErrorMap(c, fiber.StatusForbidden, errors.New("this action requires root privileges to perform (try running with sudo or as root)"))
+	}
 	api.Get("/info", func(c *fiber.Ctx) error {
 		info, err := infoService.GetSystemInfo()
 		if err != nil {
-			return c.JSON(fiber.Map{
-				"error": err.Error(),
-			})
+			return sendErrorMap(c, fiber.StatusInternalServerError, err)
 		}
 		return c.JSON(info)
 	})
 	api.Get("/process/:pid", func(c *fiber.Ctx) error {
 		info, err := infoService.GetSystemInfo()
 		if err != nil {
-			return c.JSON(fiber.Map{
-				"error": err.Error(),
-			})
+			return sendErrorMap(c, fiber.StatusInternalServerError, err)
 		}
 		pid, err := c.ParamsInt("pid")
 		if err != nil {
-			return c.JSON(fiber.Map{
-				"error": "invalid PID",
-			})
+			return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid PID"))
 		}
 		process := slices.IndexFunc(info.DynamicInfo.Processes, func(p system.Process) bool {
 			return p.PID == int32(pid)
 		})
 		if process == -1 {
-			return c.JSON(fiber.Map{
-				"error": "process not found",
-			})
+			return sendErrorMap(c, fiber.StatusNotFound, errors.New("process not found"))
 		}
 		return c.JSON(info.DynamicInfo.Processes[process])
 	})
 	api.Post("/process/:pid/kill", func(c *fiber.Ctx) error {
 		pid, err := c.ParamsInt("pid")
 		if err != nil {
-			return c.JSON(fiber.Map{
-				"error": "invalid PID",
-			})
+			return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid PID"))
 		}
-		if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
-			return c.JSON(fiber.Map{
-				"error": err.Error(),
-			})
-		}
-		return c.JSON(fiber.Map{
-			"error": nil,
-		})
+		err = syscall.Kill(pid, syscall.SIGKILL)
+		return sendErrorMap(c, fiber.StatusInternalServerError, err)
 	})
 	api.Post("/process/:pid/terminate", func(c *fiber.Ctx) error {
 		pid, err := c.ParamsInt("pid")
 		if err != nil {
-			return c.JSON(fiber.Map{
-				"error": "invalid PID",
-			})
+			return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid PID"))
 		}
-		if err := syscall.Kill(pid, syscall.SIGTERM); err != nil {
-			return c.JSON(fiber.Map{
-				"error": err.Error(),
-			})
-		}
-		return c.JSON(fiber.Map{
-			"error": nil,
-		})
+		err = syscall.Kill(pid, syscall.SIGTERM)
+		return sendErrorMap(c, fiber.StatusInternalServerError, err)
 	})
 	api.Get("/logs", func(c *fiber.Ctx) error {
 		logOptions := getLogOptionsFromCtx(c)
@@ -109,9 +93,7 @@ func main() {
 			return s.Name == name
 		})
 		if service == -1 {
-			return c.JSON(fiber.Map{
-				"error": "service not found",
-			})
+			return sendErrorMap(c, fiber.StatusNotFound, errors.New("service not found"))
 		}
 		return c.JSON(info.DynamicInfo.Services[service])
 	})
@@ -120,6 +102,21 @@ func main() {
 		logOptions := getLogOptionsFromCtx(c)
 		reader, err := sys.GetServiceLog(name, logOptions)
 		return sendReader(c, reader, err)
+	})
+	api.Patch("/service/:name/start", privilegeMiddleware, func(c *fiber.Ctx) error {
+		name := c.Params("name")
+		err := sys.StartService(name)
+		return sendErrorMap(c, fiber.StatusInternalServerError, err)
+	})
+	api.Patch("/service/:name/stop", privilegeMiddleware, func(c *fiber.Ctx) error {
+		name := c.Params("name")
+		err := sys.StopService(name)
+		return sendErrorMap(c, fiber.StatusInternalServerError, err)
+	})
+	api.Patch("/service/:name/restart", privilegeMiddleware, func(c *fiber.Ctx) error {
+		name := c.Params("name")
+		err := sys.RestartService(name)
+		return sendErrorMap(c, fiber.StatusInternalServerError, err)
 	})
 
 	if err := app.Listen(":9100"); err != nil {
@@ -151,4 +148,14 @@ func sendReader(c *fiber.Ctx, reader io.ReadCloser, err error) error {
 	c.Set("Transfer-Encoding", "chunked")
 	c.SendStream(reader, -1)
 	return nil
+}
+func sendErrorMap(c *fiber.Ctx, errStatus int, err error) error {
+	if err != nil {
+		return c.Status(errStatus).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"error": nil,
+	})
 }
