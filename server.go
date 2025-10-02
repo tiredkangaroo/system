@@ -12,6 +12,7 @@ import (
 
 	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/tiredkangaroo/system/linux"
 	"github.com/tiredkangaroo/system/system"
 )
@@ -29,7 +30,13 @@ func main() {
 
 	app := fiber.New()
 
-	api := app.Group("/api/v1", corsMiddleware)
+	api := app.Group("/api/v1", cors.New(cors.Config{
+		AllowOrigins:  "*",
+		AllowHeaders:  "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:  "GET, POST, PATCH, DELETE, OPTIONS",
+		ExposeHeaders: "Content-Length, Content-Type",
+		MaxAge:        3600,
+	}))
 
 	infoService := system.NewSystemInfoService(sys, time.Second*5)
 
@@ -182,20 +189,6 @@ func sendErrorMap(c *fiber.Ctx, errStatus int, err error) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"error": nil,
 	})
-}
-
-func corsMiddleware(c *fiber.Ctx) error {
-	if DEBUG {
-		c.Set("Access-Control-Allow-Origin", "*")
-	} else {
-		c.Set("Access-Control-Allow-Origin", "https://tiredkangaroo.github.io")
-	}
-	c.Set("Access-Control-Allow-Methods", "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS")
-	c.Set("Access-Control-Allow-Headers", "Content-Type, Accept")
-	if c.Method() == fiber.MethodOptions {
-		return c.SendStatus(fiber.StatusNoContent)
-	}
-	return c.Next()
 }
 
 func privilegeMiddleware(c *fiber.Ctx) error {

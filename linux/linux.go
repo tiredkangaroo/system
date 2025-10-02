@@ -9,7 +9,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
@@ -105,7 +104,7 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 	var info system.DynamicInfo
 	var err error
 
-	usages, err := cpu.Percent(time.Second, false)
+	usages, err := cpu.Percent(0, false)
 	if err != nil {
 		return info, err
 	}
