@@ -66,9 +66,15 @@ type Service struct {
 }
 
 type Process struct {
-	PID    int32  `json:"pid"`    // process ID
-	Name   string `json:"name"`   // process name
-	Status string `json:"status"` // process status (e.g., running, sleep, stop, blocked)
+	PID           int32   `json:"pid"`                     // process ID
+	Name          string  `json:"name"`                    // process name
+	Status        string  `json:"status"`                  // process status (e.g., running, sleep, stop, blocked)
+	Threads       int32   `json:"threads"`                 // number of threads
+	CPUPercent    float64 `json:"cpu_percent"`             // cpu usage as a percentage of total CPU
+	MemoryPercent float32 `json:"memory_percent"`          // memory usage as a percentage of total system memory
+	ParentPID     int32   `json:"parent_pid,omitempty"`    // parent process ID
+	NumFDs        int32   `json:"num_fds,omitempty"`       // number of file descriptors
+	ChildrenPIDs  []int32 `json:"children_pids,omitempty"` // child process IDs
 }
 
 const InfoRefreshInterval = 1 * time.Second

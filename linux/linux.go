@@ -173,16 +173,42 @@ func getCurrentProcesses() ([]system.Process, error) {
 			continue
 		}
 		status, err := p.Status()
-		if err != nil {
+		if err != nil || len(status) == 0 {
 			continue
 		}
+		parentPID := int32(-1)
+		if p, err := p.Parent(); err == nil {
+			parentPID = p.Pid
+		}
+		var childrenPIDs []int32
+		children, err := p.Children()
+		if err == nil {
+			childrenPIDs = make([]int32, 0, len(children))
+			for _, c := range children {
+				childrenPIDs = append(childrenPIDs, c.Pid)
+			}
+		}
+
 		infoProcesses = append(infoProcesses, system.Process{
-			PID:    p.Pid,
-			Name:   name,
-			Status: status[0],
+			PID:           p.Pid,
+			Name:          name,
+			Status:        status[0],
+			Threads:       numOrNegOne(p.NumThreads()),
+			CPUPercent:    numOrNegOne(p.CPUPercent()),
+			MemoryPercent: numOrNegOne(p.MemoryPercent()),
+			ParentPID:     parentPID,
+			NumFDs:        numOrNegOne(p.NumFDs()),
+			ChildrenPIDs:  childrenPIDs,
 		})
 	}
 	return infoProcesses, nil
+}
+
+func numOrNegOne[T int8 | int16 | int32 | int64 | float32 | float64](v T, err error) T {
+	if err != nil {
+		return T(-1)
+	}
+	return v
 }
 
 func getCurrentServices() ([]system.Service, error) {
