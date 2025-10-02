@@ -1,11 +1,9 @@
 package linux
 
 import (
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
-	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
@@ -38,36 +36,6 @@ func (ls *LinuxSystem) GetSystemLogs(logOptions system.LogOptions) (io.ReadClose
 	// journalctl --since=@<timestamp> --until=@<timestamp>
 	a := ls.buildLogArgs(logOptions)
 	return ls.runCmdGetPipe("journalctl", a...)
-}
-func (ls *LinuxSystem) GetServiceLog(serviceName string, logOptions system.LogOptions) (io.ReadCloser, error) {
-	// journalctl -u <serviceName> --since=@<timestamp> --until=@<timestamp>
-	a := []string{"-u", serviceName}
-	a = append(a, ls.buildLogArgs(logOptions)...)
-	return ls.runCmdGetPipe("journalctl", a...)
-}
-func (ls *LinuxSystem) StartService(serviceName string) error {
-	cmd := exec.Command("systemctl", "start", serviceName)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("start service: %s, output: %s", err.Error(), string(output))
-	}
-	return nil
-}
-func (ls *LinuxSystem) StopService(serviceName string) error {
-	cmd := exec.Command("systemctl", "stop", serviceName)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("stop service: %s, output: %s", err.Error(), string(output))
-	}
-	return nil
-}
-func (ls *LinuxSystem) RestartService(serviceName string) error {
-	cmd := exec.Command("systemctl", "restart", serviceName)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("restart service: %s, output: %s", err.Error(), string(output))
-	}
-	return nil
 }
 
 func getStaticSysInfo() (system.StaticInfo, error) {
@@ -203,47 +171,6 @@ func getCurrentProcesses() ([]system.Process, error) {
 	return infoProcesses, nil
 }
 
-func numOrNegOne[T int8 | int16 | int32 | int64 | float32 | float64](v T, err error) T {
-	if err != nil {
-		return T(-1)
-	}
-	return v
-}
-
-func getCurrentServices() ([]system.Service, error) {
-	var services []system.Service
-	output, err := exec.Command("systemctl", "list-units", "--all", "--type=service", "--state=running,failed,exited,dead").Output()
-	if err != nil {
-		return nil, err
-	}
-	lines := strings.Split(string(output), "\n")
-	if len(lines) < 3 {
-		return nil, fmt.Errorf("malformed systemctl data")
-	}
-	for _, line := range lines[1:] { // skips over column names
-		fields := strings.Fields(line)
-		if len(fields) < 5 {
-			break // end of services list
-		}
-		skipIndexes := 0
-		if !strings.HasSuffix(fields[0], ".service") { // sometimes the first part of the line is not service name (e.g: ● on failed units)
-			if len(fields) < 6 {
-				continue // cannot parse this line
-			}
-			skipIndexes = 1
-		}
-		if fields[skipIndexes+1] != "loaded" {
-			continue // not-found or whatever else may be in this field, ignore
-		}
-		services = append(services, system.Service{
-			Name:        fields[skipIndexes],
-			Status:      fields[skipIndexes+3], // sub
-			Description: strings.Join(fields[skipIndexes+4:], " "),
-		})
-	}
-	return services, nil
-}
-
 func getBatteryInfo() (bool, string) {
 	base := "/sys/class/power_supply/"
 	entries, err := os.ReadDir(base)
@@ -261,46 +188,4 @@ func getBatteryInfo() (bool, string) {
 		}
 	}
 	return false, ""
-}
-
-func fieldValueFromProcFile(filename string, field string) (string, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return "unknown", err
-	}
-	for line := range strings.SplitSeq(string(data), "\n") {
-		if strings.HasPrefix(line, field) {
-			parts := strings.SplitN(line, ":", 2)
-			if len(parts) != 2 {
-				continue
-			}
-			return strings.TrimSpace(parts[1]), nil
-		}
-	}
-	return "unknown", fmt.Errorf("field %s not found in %s", field, filename)
-}
-
-func (ls LinuxSystem) buildLogArgs(logOptions system.LogOptions) []string {
-	a := []string{}
-	if logOptions.ThisBootOnly {
-		a = append(a, "-b")
-	}
-	if logOptions.Since != nil {
-		a = append(a, fmt.Sprintf("--since=@%d", logOptions.Since.Unix()))
-	}
-	if logOptions.Until != nil {
-		a = append(a, fmt.Sprintf("--until=@%d", logOptions.Until.Unix()))
-	}
-	return a
-}
-func (ls *LinuxSystem) runCmdGetPipe(cmdName string, args ...string) (io.ReadCloser, error) {
-	cmd := exec.Command(cmdName, args...)
-	pipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	return pipe, nil
 }

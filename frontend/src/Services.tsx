@@ -62,60 +62,85 @@ function Service({
   service: Service;
   serverURL: string;
 }) {
+  const startEnabled = service.status !== "running";
+  const stopEnabled =
+    service.status === "running" || service.status === "failed";
+  const restartEnabled =
+    service.status === "running" || service.status === "failed";
   return (
     <div className="my-4">
       <div className="w-full flex flex-row justify-between">
         <div className="flex flex-row items-center gap-2">
-          <div
-            style={{ backgroundColor: statusColor(service.status) }}
-            title={service.status}
-            className="w-3 h-3 aspect-square"
-          ></div>
-          <h2 className="text-xl font-bold">{service.name}</h2>
+          <h2
+            style={{ color: statusColor(service.status) }}
+            className="text-xl font-bold"
+          >
+            {service.name}
+          </h2>
         </div>
         <div className="flex flex-row gap-2">
-          {service.status !== "running" && (
-            <button
-              className="bg-gray-300 px-2 py-1 rounded-sm hover:bg-gray-400"
-              title="start service"
-              onClick={() => {
-                fetch(`${serverURL}/api/v1/service/${service.name}/start`, {
-                  method: "PATCH",
-                }).then((resp) => {
-                  if (resp.ok) {
-                  }
-                });
-              }}
-            >
-              <VscDebugStart />
-            </button>
-          )}
-          {(service.status === "running" || service.status === "failed") && (
-            <button
-              className="bg-gray-300 px-2 py-1 rounded-sm hover:bg-gray-400"
-              title="stop service"
-              onClick={() => {
-                fetch(`${serverURL}/api/v1/service/${service.name}/stop`, {
-                  method: "PATCH",
-                });
-              }}
-            >
-              <BsXOctagonFill />
-            </button>
-          )}
-          {(service.status === "running" || service.status === "failed") && (
-            <button
-              className="bg-gray-300 px-2 py-1 rounded-sm hover:bg-gray-400"
-              title="restart service"
-              onClick={() => {
-                fetch(`${serverURL}/api/v1/service/${service.name}/restart`, {
-                  method: "PATCH",
-                });
-              }}
-            >
-              <MdOutlineRestartAlt />
-            </button>
-          )}
+          <button
+            className="px-2 py-1 rounded-sm hover:bg-gray-400 cursor-pointer"
+            title={
+              startEnabled
+                ? "start service"
+                : "cannot start; service already running"
+            }
+            style={{
+              backgroundColor: startEnabled ? "#d1d5dc" : "#686869",
+            }}
+            disabled={!startEnabled}
+            onClick={() => {
+              if (!startEnabled) return;
+              fetch(`${serverURL}/api/v1/service/${service.name}/start`, {
+                method: "PATCH",
+              }).then((resp) => {
+                if (resp.ok) {
+                }
+              });
+            }}
+          >
+            <VscDebugStart />
+          </button>
+          <button
+            style={{
+              backgroundColor: stopEnabled ? "#d1d5dc" : "#686869",
+            }}
+            className="bg-gray-300 px-2 py-1 rounded-sm hover:bg-gray-400 cursor-pointer"
+            title={
+              stopEnabled
+                ? "stop service"
+                : "cannot stop a dead or exited service"
+            }
+            disabled={!stopEnabled}
+            onClick={() => {
+              if (!stopEnabled) return;
+              fetch(`${serverURL}/api/v1/service/${service.name}/stop`, {
+                method: "PATCH",
+              });
+            }}
+          >
+            <BsXOctagonFill />
+          </button>
+          <button
+            style={{
+              backgroundColor: restartEnabled ? "#d1d5dc" : "#686869",
+            }}
+            className="px-2 py-1 rounded-sm hover:bg-gray-400 cursor-pointer"
+            title={
+              restartEnabled
+                ? "restart service"
+                : "cannot restart a dead or exited service"
+            }
+            disabled={!restartEnabled}
+            onClick={() => {
+              fetch(`${serverURL}/api/v1/service/${service.name}/restart`, {
+                method: "PATCH",
+              });
+            }}
+          >
+            <MdOutlineRestartAlt />
+          </button>
         </div>
       </div>
       <p className="text-sm">
@@ -128,13 +153,13 @@ function Service({
 function statusColor(status: string): string {
   switch (status) {
     case "running":
-      return "#70ff8f";
+      return "#61ad68";
     case "dead":
       return "#000";
     case "failed":
       return "#ff4b3b";
     case "exited":
-      return "#6cc269";
+      return "#507344";
   }
   return "#fff";
 }

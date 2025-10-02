@@ -12,7 +12,7 @@ export function DynamicInfoView(props: { info: SystemInfo }) {
           <code className="text-xl">{props.info.hostname}</code>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-12 pl-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 pl-3">
         <div className="flex flex-col gap-2">
           cpu usage: {props.info.cpu_usage.toFixed(2)}%
           <PercentageBar percentage={props.info.cpu_usage} />
