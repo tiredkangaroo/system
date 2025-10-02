@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
 	"github.com/tiredkangaroo/system/linux"
 	"github.com/tiredkangaroo/system/system"
@@ -20,7 +21,7 @@ var DEBUG = os.Getenv("DEBUG") == "true"
 func main() {
 	var sys system.System
 	switch runtime.GOOS {
-	case "linux":
+	case "linux", "darwin":
 		sys = &linux.LinuxSystem{}
 	default:
 		panic("Unsupported OS")
@@ -39,6 +40,33 @@ func main() {
 		}
 		return c.JSON(info)
 	})
+	api.Get("/info/ws", websocket.New(func(c *websocket.Conn) {
+		info, err := infoService.GetSystemInfo()
+		if err != nil {
+			slog.Error("websocket get system info", "error", err)
+			return
+		}
+		err = c.WriteJSON(info)
+		if err != nil {
+			slog.Error("websocket write json", "error", err)
+			return
+		}
+		ticker := time.NewTicker(system.InfoRefreshInterval)
+		defer ticker.Stop()
+		defer c.Close()
+		for range ticker.C {
+			info, err := infoService.GetSystemInfo()
+			if err != nil {
+				slog.Error("websocket get system info", "error", err)
+				break
+			}
+			err = c.WriteJSON(info)
+			if err != nil {
+				slog.Error("websocket write json", "error", err)
+				break
+			}
+		}
+	}))
 	api.Get("/process/:pid", func(c *fiber.Ctx) error {
 		info, err := infoService.GetSystemInfo()
 		if err != nil {

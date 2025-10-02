@@ -71,7 +71,7 @@ type Process struct {
 	Status string `json:"status"` // process status (e.g., running, sleep, stop, blocked)
 }
 
-const InfoRefreshInterval = 5 * time.Second
+const InfoRefreshInterval = 1 * time.Second
 
 type SystemInfoService struct {
 	sys                 System

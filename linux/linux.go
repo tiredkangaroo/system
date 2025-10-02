@@ -3,6 +3,7 @@ package linux
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"runtime"
@@ -143,11 +144,29 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 		}
 	}
 
+	info.Processes, err = getCurrentProcesses()
+	if err != nil {
+		slog.Error("cannot get host processes", "error", err)
+	}
+
+	info.Uptime, err = host.Uptime()
+	if err != nil {
+		slog.Error("cannot get host uptime", "error", err)
+	}
+
+	info.Services, err = getCurrentServices()
+	if err != nil {
+		slog.Error("cannot get services", "error", err)
+	}
+	return info, nil
+}
+
+func getCurrentProcesses() ([]system.Process, error) {
 	processes, err := process.Processes()
 	if err != nil {
-		return info, err
+		return nil, err
 	}
-	info.Processes = make([]system.Process, 0, len(processes))
+	infoProcesses := make([]system.Process, 0, len(processes))
 	for _, p := range processes {
 		name, err := p.Name()
 		if err != nil {
@@ -157,26 +176,24 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 		if err != nil {
 			continue
 		}
-		info.Processes = append(info.Processes, system.Process{
+		infoProcesses = append(infoProcesses, system.Process{
 			PID:    p.Pid,
 			Name:   name,
 			Status: status[0],
 		})
 	}
+	return infoProcesses, nil
+}
 
-	info.Uptime, err = host.Uptime()
-	if err != nil {
-		return info, err
-	}
-
-	info.Services = []system.Service{}
+func getCurrentServices() ([]system.Service, error) {
+	var services []system.Service
 	output, err := exec.Command("systemctl", "list-units", "--all", "--type=service", "--state=running,failed,exited,dead").Output()
 	if err != nil {
-		return info, err
+		return nil, err
 	}
 	lines := strings.Split(string(output), "\n")
 	if len(lines) < 3 {
-		return info, nil
+		return nil, fmt.Errorf("malformed systemctl data")
 	}
 	for _, line := range lines[1:] { // skips over column names
 		fields := strings.Fields(line)
@@ -193,14 +210,13 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 		if fields[skipIndexes+1] != "loaded" {
 			continue // not-found or whatever else may be in this field, ignore
 		}
-		info.Services = append(info.Services, system.Service{
+		services = append(services, system.Service{
 			Name:        fields[skipIndexes],
 			Status:      fields[skipIndexes+3], // sub
 			Description: strings.Join(fields[skipIndexes+4:], " "),
 		})
 	}
-
-	return info, nil
+	return services, nil
 }
 
 func getBatteryInfo() (bool, string) {
@@ -225,7 +241,7 @@ func getBatteryInfo() (bool, string) {
 func fieldValueFromProcFile(filename string, field string) (string, error) {
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		return "", err
+		return "unknown", err
 	}
 	for line := range strings.SplitSeq(string(data), "\n") {
 		if strings.HasPrefix(line, field) {
@@ -236,7 +252,7 @@ func fieldValueFromProcFile(filename string, field string) (string, error) {
 			return strings.TrimSpace(parts[1]), nil
 		}
 	}
-	return "", fmt.Errorf("field %s not found in %s", field, filename)
+	return "unknown", fmt.Errorf("field %s not found in %s", field, filename)
 }
 
 func (ls LinuxSystem) buildLogArgs(logOptions system.LogOptions) []string {
