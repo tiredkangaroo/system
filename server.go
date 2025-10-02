@@ -91,20 +91,44 @@ func main() {
 		}
 		return c.JSON(info.DynamicInfo.Processes[process])
 	})
-	api.Post("/process/:pid/kill", func(c *fiber.Ctx) error {
+	// api.Post("/process/:pid/kill", func(c *fiber.Ctx) error {
+	// 	pid, err := c.ParamsInt("pid")
+	// 	if err != nil {
+	// 		return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid PID"))
+	// 	}
+	// 	err = syscall.Kill(pid, syscall.SIGKILL)
+	// 	return sendErrorMap(c, fiber.StatusInternalServerError, err)
+	// })
+	// api.Post("/process/:pid/terminate", func(c *fiber.Ctx) error {
+	// 	pid, err := c.ParamsInt("pid")
+	// 	if err != nil {
+	// 		return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid PID"))
+	// 	}
+	// 	err = syscall.Kill(pid, syscall.SIGTERM)
+	// 	return sendErrorMap(c, fiber.StatusInternalServerError, err)
+	// })
+	api.Post("/process/pid/:pid/signal/:signal", func(c *fiber.Ctx) error {
 		pid, err := c.ParamsInt("pid")
 		if err != nil {
 			return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid PID"))
 		}
-		err = syscall.Kill(pid, syscall.SIGKILL)
-		return sendErrorMap(c, fiber.StatusInternalServerError, err)
-	})
-	api.Post("/process/:pid/terminate", func(c *fiber.Ctx) error {
-		pid, err := c.ParamsInt("pid")
-		if err != nil {
-			return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid PID"))
+		signal := c.Params("signal")
+		var syscallSignal syscall.Signal
+		switch signal {
+		case "SIGKILL":
+			syscallSignal = syscall.SIGKILL
+		case "SIGTERM":
+			syscallSignal = syscall.SIGTERM
+		case "SIGSTOP":
+			syscallSignal = syscall.SIGSTOP
+		case "SIGCONT":
+			syscallSignal = syscall.SIGCONT
+		case "SIGQUIT":
+			syscallSignal = syscall.SIGQUIT
+		default:
+			return sendErrorMap(c, fiber.StatusBadRequest, errors.New("signal is invalid"))
 		}
-		err = syscall.Kill(pid, syscall.SIGTERM)
+		err = syscall.Kill(pid, syscallSignal)
 		return sendErrorMap(c, fiber.StatusInternalServerError, err)
 	})
 	api.Get("/logs", func(c *fiber.Ctx) error {

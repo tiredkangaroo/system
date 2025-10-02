@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Process, SystemInfo } from "../types";
 import { memoryString } from "./utils";
 
@@ -35,6 +35,7 @@ function Process(props: {
   process: Process;
   systemInfo: SystemInfo;
 }) {
+  const signalRef = useRef<HTMLSelectElement | null>(null);
   return (
     <div className="w-full flex flex-col">
       <div className="w-full flex flex-row items-center gap-3 justify-between">
@@ -53,28 +54,31 @@ function Process(props: {
           </b>
         </h2>
         <div className="flex flex-row gap-4 pr-2">
-          <button
-            className="bg-gray-300 px-2 rounded-md cursor-pointer"
-            title={"kill " + props.process.name}
-            onClick={() =>
-              fetch(`${props.serverURL}/process/${props.process.pid}/kill`, {
-                method: "POST",
-              })
-            }
+          <select
+            className="border border-black rounded-md pl-2"
+            defaultValue={"none"}
+            ref={signalRef}
           >
-            kill
-          </button>
+            <option value={"none"}>choose signal</option>
+            <option value={"SIGKILL"}>kill (SIGKILL)</option>
+            <option value={"SIGTERM"}>terminate (SIGTERM)</option>
+            <option value={"SIGSTOP"}>suspend (SIGSTOP)</option>
+            <option value={"SIGCONT"}>resume (SIGCONT)</option>
+          </select>
           <button
-            className="bg-gray-300 px-2 rounded-md cursor-pointer"
-            title={"terminate " + props.process.name}
-            onClick={() =>
+            className="bg-gray-300 px-2 py-1 rounded-sm hover:bg-gray-400"
+            onClick={() => {
               fetch(
-                `${props.serverURL}/process/${props.process.pid}/terminate`,
-                { method: "POST" }
-              )
-            }
+                `${props.serverURL}/api/v1/process/${
+                  props.process.pid
+                }/signal/${signalRef.current!.value}`,
+                {
+                  method: "POST",
+                }
+              );
+            }}
           >
-            terminate
+            send
           </button>
         </div>
       </div>
