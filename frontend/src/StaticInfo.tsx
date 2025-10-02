@@ -4,7 +4,7 @@ import { memoryString } from "./utils";
 export function StaticInfoView(props: { info: SystemInfo }) {
   return (
     <div className="w-full bg-yellow-100 flex flex-col gap-2 py-4 rounded-sm">
-      <p className="pl-1">
+      <p className="pl-2">
         <b className="text-2xl">static information for</b>{" "}
         <code className="text-xl">{props.info.hostname}</code>
       </p>

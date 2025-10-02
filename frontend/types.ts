@@ -15,7 +15,7 @@ export interface SystemInfo {
   battery_temp: number; // used
   battery_percent: number; // used
   battery_status: string; // used
-  processes: Process[];
+  processes: Process[]; // used
   services: Service[];
   uptime: number; // used
 }

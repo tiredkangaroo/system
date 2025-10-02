@@ -4,7 +4,7 @@ import { memoryString } from "./utils";
 export function DynamicInfoView(props: { info: SystemInfo }) {
   return (
     <div className="w-full bg-blue-100 flex flex-col gap-2 py-4 rounded-sm">
-      <div className="flex flex-row px-1 justify-between">
+      <div className="flex flex-row px-2 justify-between">
         <div>
           <b className="text-2xl">dynamic information for</b>{" "}
           <code className="text-xl">{props.info.hostname}</code>

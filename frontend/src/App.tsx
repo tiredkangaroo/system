@@ -4,6 +4,7 @@ import { FaPowerOff } from "react-icons/fa6";
 import { StaticInfoView } from "./StaticInfo";
 import { DynamicInfoView } from "./DynamicInfo";
 import { ProcessesView } from "./Processes";
+import { ServicesView } from "./Services";
 
 function App() {
   const [serverURL, setServerURL] = useState<string | null>(
@@ -93,6 +94,7 @@ function SystemInfoDisplay(props: SystemInfoDisplayProps) {
         processes={props.info.processes}
         systemInfo={props.info}
       />
+      <ServicesView services={props.info.services} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useRef, useState, type JSX } from "react";
 import type { Process, SystemInfo } from "../types";
 import { memoryString } from "./utils";
+import { Paginated, Search } from "./Paginated";
 
 export function ProcessesView(props: {
   serverURL: string;
@@ -12,36 +13,22 @@ export function ProcessesView(props: {
   );
   const [pageNumber, setPageNumber] = useState(0);
   return (
-    <div className="w-full bg-orange-100 flex flex-col gap-2 py-4 px-1 rounded-sm">
+    <div className="w-full bg-orange-100 flex flex-col gap-2 py-4 px-2 rounded-sm">
       <div>
         <h1 className="text-2xl font-bold">
           currently running processes ({props.processes.length})
         </h1>
       </div>
       <div className="w-full flex flex-col gap-2 pl-3">
-        <div className="">
-          <input
-            className="w-[50%] px-1 border-1 rounded-sm"
-            placeholder="search by name"
-            onChange={(e) => {
-              if (e.target.value.length == 0) {
-                setFilteredProcesses(props.processes);
-                return;
-              }
-              setFilteredProcesses(
-                props.processes
-                  .filter((proc) =>
-                    proc.name
-                      .toLowerCase()
-                      .includes(e.target.value.toLowerCase())
-                  )
-                  .sort((a, b) => a.name.length - b.name.length) // sorts least to greatest name length so smth like systemd doesn't come before system if the search is "system"
-              );
-              setPageNumber(0);
-            }}
-          />{" "}
-          ({filteredProcesses.length} results)
-        </div>
+        <Search
+          list={props.processes}
+          objectKeyForFilter="name"
+          filteredList={filteredProcesses}
+          setFilteredList={(v) => {
+            setFilteredProcesses(v);
+            setPageNumber(0);
+          }}
+        />
         <Paginated
           elements={filteredProcesses.map((proc) => (
             <Process
@@ -54,56 +41,9 @@ export function ProcessesView(props: {
           ))}
           pageNumber={pageNumber}
           setPageNumber={setPageNumber}
+          elementsPerPage={5}
           key={JSON.stringify({ p: filteredProcesses, s: props.systemInfo })}
         />
-      </div>
-    </div>
-  );
-}
-
-function Paginated({
-  elements,
-  pageNumber,
-  setPageNumber,
-}: {
-  elements: JSX.Element[];
-  pageNumber: number;
-  setPageNumber: (page: number) => void;
-}) {
-  const elementsPerPage = 5;
-  const numPages = Math.ceil(elements.length / elementsPerPage);
-  console.log(numPages);
-  return (
-    <div>
-      {elements.slice(
-        pageNumber * elementsPerPage,
-        (pageNumber + 1) * elementsPerPage
-      )}
-      <div className="flex flex-row items-center align-middle justify-center gap-4">
-        {[
-          ...Array.from(
-            {
-              length:
-                Math.min(numPages, pageNumber + 5) -
-                Math.max(0, pageNumber - 3),
-            },
-            (_, i) => Math.max(0, pageNumber - 3) + i
-          ),
-        ].map((v, index) => {
-          return (
-            <button
-              key={index}
-              onClick={() => setPageNumber(v)}
-              style={{
-                color: pageNumber === v ? "black" : "blue",
-                textDecoration: pageNumber === v ? "none" : "underline",
-                cursor: pageNumber === v ? "default" : "pointer",
-              }}
-            >
-              {v + 1}
-            </button>
-          );
-        })}
       </div>
     </div>
   );
