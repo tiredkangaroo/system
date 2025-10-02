@@ -91,6 +91,7 @@ function SystemInfoDisplay(props: SystemInfoDisplayProps) {
       <ProcessesView
         serverURL={props.serverURL}
         processes={props.info.processes}
+        systemInfo={props.info}
       />
     </div>
   );
