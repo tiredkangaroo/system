@@ -3,6 +3,7 @@ module github.com/tiredkangaroo/system
 go 1.24.2
 
 require (
+	github.com/gofiber/contrib/websocket v1.3.4
 	github.com/gofiber/fiber/v2 v2.52.9
 	github.com/shirou/gopsutil/v4 v4.25.8
 )
@@ -12,7 +13,6 @@ require (
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/fasthttp/websocket v1.5.8 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
-	github.com/gofiber/contrib/websocket v1.3.4 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
