@@ -107,7 +107,7 @@ func main() {
 	// 	err = syscall.Kill(pid, syscall.SIGTERM)
 	// 	return sendErrorMap(c, fiber.StatusInternalServerError, err)
 	// })
-	api.Post("/process/pid/:pid/signal/:signal", func(c *fiber.Ctx) error {
+	api.Post("/process/:pid/signal/:signal", func(c *fiber.Ctx) error {
 		pid, err := c.ParamsInt("pid")
 		if err != nil {
 			return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid PID"))
