@@ -12,7 +12,6 @@ export function Paginated({
   elementsPerPage: number;
 }) {
   const numPages = Math.ceil(elements.length / elementsPerPage);
-  console.log(numPages);
   return (
     <div>
       {elements.slice(

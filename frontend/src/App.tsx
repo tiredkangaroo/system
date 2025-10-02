@@ -22,6 +22,7 @@ function App() {
     };
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
+      console.log(data)
       setCurrentInfo(data);
       setWsReadyState(ws.readyState);
     };
@@ -94,7 +95,7 @@ function SystemInfoDisplay(props: SystemInfoDisplayProps) {
         processes={props.info.processes}
         systemInfo={props.info}
       />
-      <ServicesView services={props.info.services} />
+      <ServicesView serverURL={props.serverURL} info={props.info} />
     </div>
   );
 }

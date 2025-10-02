@@ -2,6 +2,8 @@ import type { SystemInfo } from "../types";
 import { memoryString } from "./utils";
 
 export function DynamicInfoView(props: { info: SystemInfo }) {
+  const battery_percent =
+    props.info.battery_status === "Full" ? 100 : props.info.battery_percent;
   return (
     <div className="w-full bg-blue-100 flex flex-col gap-2 py-4 rounded-sm">
       <div className="flex flex-row px-2 justify-between">
@@ -39,13 +41,9 @@ export function DynamicInfoView(props: { info: SystemInfo }) {
         {props.info.has_battery ? (
           <div className="flex flex-col gap-2">
             <p>
-              battery: {props.info.battery_percent}% (status{" "}
-              {props.info.battery_status})
+              battery: {battery_percent}% (status {props.info.battery_status})
             </p>
-            <PercentageBar
-              percentage={props.info.battery_percent}
-              reverseColor={true}
-            />{" "}
+            <PercentageBar percentage={battery_percent} reverseColor={true} />{" "}
           </div>
         ) : null}
         {props.info.has_battery ? (
@@ -96,7 +94,7 @@ function PercentageBar(props: { percentage: number; reverseColor?: boolean }) {
           width: props.percentage * 2,
           backgroundColor: backgroundColor,
         }}
-        className="h-full"
+        className="h-full rounded-lg"
       ></div>
     </div>
   );

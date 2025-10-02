@@ -1,4 +1,4 @@
-import { useRef, useState, type JSX } from "react";
+import { useRef, useState } from "react";
 import type { Process, SystemInfo } from "../types";
 import { memoryString } from "./utils";
 import { Paginated, Search } from "./Paginated";
@@ -42,7 +42,6 @@ export function ProcessesView(props: {
           pageNumber={pageNumber}
           setPageNumber={setPageNumber}
           elementsPerPage={5}
-          key={JSON.stringify({ p: filteredProcesses, s: props.systemInfo })}
         />
       </div>
     </div>
@@ -57,7 +56,7 @@ function Process(props: {
 }) {
   const signalRef = useRef<HTMLSelectElement | null>(null);
   return (
-    <div className="w-full flex flex-col">
+    <div className="w-full my-2 flex flex-col">
       <div className="w-full flex flex-row items-center gap-3 justify-between">
         <h2 className="text-xl">
           <b
