@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { type SystemInfo } from "../types";
-import { FaPowerOff } from "react-icons/fa6";
 import { StaticInfoView } from "./StaticInfo";
 import { DynamicInfoView } from "./DynamicInfo";
 import { ProcessesView } from "./Processes";
@@ -22,7 +21,7 @@ function App() {
     };
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      console.log(data)
+      console.log(data);
       setCurrentInfo(data);
       setWsReadyState(ws.readyState);
     };
@@ -56,46 +55,31 @@ interface SystemInfoDisplayProps {
   serverURL: string;
 }
 function SystemInfoDisplay(props: SystemInfoDisplayProps) {
-  if (!props.info) {
-    return (
-      <div className="w-full h-full flex flex-col justify-center items-center">
-        No data
-      </div>
-    );
-  }
   return (
     <div className="w-full h-full flex flex-col gap-5">
-      <div className="w-full mt-1 flex flex-row justify-between align-middle items-center">
-        <div
-          style={{
-            backgroundColor:
-              props.wsReadyState === WebSocket.OPEN ? "#05a839" : "#ab0c03",
-          }}
-          title={
-            props.wsReadyState === WebSocket.OPEN
-              ? "connected to host (information is live)"
-              : "not connected to host (information is stale)"
-          }
-          className="rounded-4xl w-4 h-4 aspect-square text-white"
-        >
-          {" "}
-        </div>
-        <button
-          className="bg-gray-400 rounded-4xl p-2 shadow-md"
-          title="shut down host"
-        >
-          <FaPowerOff />
-        </button>
-      </div>
-
-      <StaticInfoView info={props.info} />
-      <DynamicInfoView info={props.info} />
-      <ProcessesView
-        serverURL={props.serverURL}
-        processes={props.info.processes}
-        systemInfo={props.info}
-      />
-      <ServicesView serverURL={props.serverURL} info={props.info} />
+      {props.info ? (
+        <>
+          <StaticInfoView info={props.info} />
+          <DynamicInfoView info={props.info} />
+          <ProcessesView
+            serverURL={props.serverURL}
+            processes={props.info.processes}
+            systemInfo={props.info}
+          />
+          <ServicesView serverURL={props.serverURL} info={props.info} />
+        </>
+      ) : null}
+      <p
+        style={{
+          color: props.wsReadyState === WebSocket.OPEN ? "#05a839" : "#ab0c03",
+        }}
+        className="text-center pb-2"
+      >
+        {props.wsReadyState === WebSocket.OPEN
+          ? "connected to host" +
+            (props.info ? `` : "host (retrieving info...)")
+          : "not connected to host"}
+      </p>
     </div>
   );
 }
