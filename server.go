@@ -19,7 +19,11 @@ import (
 
 var DEBUG = os.Getenv("DEBUG") == "true"
 
+var certFile = os.Getenv("TLS_CERT_FILE")
+var keyFile = os.Getenv("TLS_KEY_FILE")
+
 func main() {
+	slog.SetLogLoggerLevel(slog.LevelInfo)
 	var sys system.System
 	switch runtime.GOOS {
 	case "linux", "darwin":
@@ -174,7 +178,15 @@ func main() {
 		return sendErrorMap(c, fiber.StatusInternalServerError, err)
 	})
 
-	if err := app.Listen(":9100"); err != nil {
+	var err error
+	if certFile != "" && keyFile != "" {
+		slog.Info("starting server with TLS")
+		err = app.ListenTLS(":9100", certFile, keyFile)
+	} else {
+		slog.Info("starting server without TLS")
+		err = app.Listen(":9100")
+	}
+	if err != nil {
 		slog.Error("server", "error", err)
 	}
 }
