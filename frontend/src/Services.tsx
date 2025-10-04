@@ -43,7 +43,7 @@ export function ServicesView({
         <Paginated
           elements={filteredServices
             .sort((a, b) => statusOrder[a.status] - statusOrder[b.status])
-            .map((v, i) => (
+            .map((v, _) => (
               <Service service={v} serverURL={serverURL} />
             ))}
           pageNumber={pageNumber}
