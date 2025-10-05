@@ -76,8 +76,7 @@ function SystemInfoDisplay(props: SystemInfoDisplayProps) {
         className="text-center pb-2"
       >
         {props.wsReadyState === WebSocket.OPEN
-          ? "connected to host" +
-            (props.info ? `` : "host (retrieving info...)")
+          ? "connected to host" + (props.info ? `` : "(retrieving info...)")
           : "not connected to host"}
       </p>
     </div>
