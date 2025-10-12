@@ -28,7 +28,7 @@ func fieldValueFromProcFile(filename string, field string) (string, error) {
 }
 
 func (ls LinuxSystem) buildLogArgs(logOptions system.LogOptions) []string {
-	a := []string{}
+	a := []string{"-o", "short-full"}
 	if logOptions.ThisBootOnly {
 		a = append(a, "-b")
 	}
