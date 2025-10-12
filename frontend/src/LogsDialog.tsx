@@ -16,9 +16,9 @@ export function LogsDialog({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg w-[80%] max-h-[80vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b">
+    <div className="fixed inset-0 w-full h-full bg-white bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-lg w-full h-full overflow-y-auto">
+        <div className="w-full flex justify-between items-center p-4 border-b">
           <h2 className="text-xl font-semibold">{logName} logs</h2>
           <button
             onClick={() => setLogURL(null)}
@@ -28,7 +28,7 @@ export function LogsDialog({
           </button>
         </div>
         {/* since (unix sec), until (unix sec), this boot only (bool) */}
-        <div className="p-4 flex flex-col gap-4">
+        <div className="w-full h-[90vh] p-4 flex flex-col gap-4">
           <div className="flex flex-row gap-8 items-center">
             <div>
               from:{" "}
@@ -79,7 +79,7 @@ export function LogsDialog({
           <iframe
             src={logURL + "?" + queryParam.toString()}
             title="Logs"
-            className="w-full h-[60vh] border-[0.5px]"
+            className="w-full h-[100%] border-[0.5px]"
           ></iframe>
         </div>
       </div>

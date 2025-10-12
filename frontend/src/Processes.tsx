@@ -7,7 +7,11 @@ export function ProcessesView(props: {
   serverURL: string;
   processes: Process[];
   systemInfo: SystemInfo;
+  hasPrivilege: boolean | null;
 }) {
+  if (!props.processes || props.processes.length === 0) {
+    return null;
+  }
   const [filteredProcesses, setFilteredProcesses] = useState<Process[]>(
     props.processes
   );
@@ -37,6 +41,7 @@ export function ProcessesView(props: {
               processes={props.processes}
               process={proc}
               systemInfo={props.systemInfo}
+              hasPrivilege={props.hasPrivilege}
             />
           ))}
           pageNumber={pageNumber}
@@ -53,6 +58,7 @@ function Process(props: {
   processes: Process[];
   process: Process;
   systemInfo: SystemInfo;
+  hasPrivilege: boolean | null;
 }) {
   const signalRef = useRef<HTMLSelectElement | null>(null);
   return (
@@ -72,34 +78,38 @@ function Process(props: {
             {props.process.name}
           </b>
         </h2>
-        <div className="flex flex-row gap-4 pr-2">
-          <select
-            className="border border-black rounded-md pl-2"
-            defaultValue={"none"}
-            ref={signalRef}
-          >
-            <option value={"none"}>choose signal</option>
-            <option value={"SIGKILL"}>kill (SIGKILL)</option>
-            <option value={"SIGTERM"}>terminate (SIGTERM)</option>
-            <option value={"SIGSTOP"}>suspend (SIGSTOP)</option>
-            <option value={"SIGCONT"}>resume (SIGCONT)</option>
-          </select>
-          <button
-            className="bg-gray-300 px-2 py-1 rounded-sm hover:bg-gray-400"
-            onClick={() => {
-              fetch(
-                `${props.serverURL}/api/v1/process/${
-                  props.process.pid
-                }/signal/${signalRef.current!.value}`,
-                {
-                  method: "POST",
-                }
-              );
-            }}
-          >
-            send
-          </button>
-        </div>
+        {props.hasPrivilege && (
+          <div>
+            <div className="flex flex-row gap-4 pr-2">
+              <select
+                className="border border-black rounded-md pl-2"
+                defaultValue={"none"}
+                ref={signalRef}
+              >
+                <option value={"none"}>choose signal</option>
+                <option value={"SIGKILL"}>kill (SIGKILL)</option>
+                <option value={"SIGTERM"}>terminate (SIGTERM)</option>
+                <option value={"SIGSTOP"}>suspend (SIGSTOP)</option>
+                <option value={"SIGCONT"}>resume (SIGCONT)</option>
+              </select>
+              <button
+                className="bg-gray-300 px-2 py-1 rounded-sm hover:bg-gray-400"
+                onClick={() => {
+                  fetch(
+                    `${props.serverURL}/api/v1/process/${
+                      props.process.pid
+                    }/signal/${signalRef.current!.value}`,
+                    {
+                      method: "POST",
+                    }
+                  );
+                }}
+              >
+                send
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       <ul className="list-disc pl-5">
         <li>

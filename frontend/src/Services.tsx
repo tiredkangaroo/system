@@ -16,11 +16,16 @@ export function ServicesView({
   info,
   serverURL,
   setLogURL,
+  hasPrivilege,
 }: {
   info: SystemInfo;
   serverURL: string;
   setLogURL: (url: string | null) => void;
+  hasPrivilege: boolean | null;
 }) {
+  if (!info.services || info.services.length === 0) {
+    return null;
+  }
   const [filteredServices, setFilteredServices] = useState<Service[]>(
     info.services
   );
@@ -46,10 +51,11 @@ export function ServicesView({
           elements={filteredServices
             .sort((a, b) => statusOrder[a.status] - statusOrder[b.status])
             .map((v, _) => (
-              <Service
+              <ServiceView
                 service={v}
                 serverURL={serverURL}
                 setLogURL={setLogURL}
+                hasPrivilege={hasPrivilege}
               />
             ))}
           pageNumber={pageNumber}
@@ -61,20 +67,93 @@ export function ServicesView({
   );
 }
 
-function Service({
+function ServiceView({
   service,
   serverURL,
   setLogURL,
+  hasPrivilege,
 }: {
   service: Service;
   serverURL: string;
   setLogURL: (url: string | null) => void;
+  hasPrivilege: boolean | null;
 }) {
   const startEnabled = service.status !== "running";
   const stopEnabled =
     service.status === "running" || service.status === "failed";
   const restartEnabled =
     service.status === "running" || service.status === "failed";
+  function StartStopRestartButtons() {
+    if (!hasPrivilege) {
+      return null;
+    }
+    return (
+      <>
+        <button
+          className="px-2 py-1 rounded-sm hover:bg-gray-400 cursor-pointer"
+          title={
+            startEnabled
+              ? "start service"
+              : "cannot start; service already running"
+          }
+          style={{
+            backgroundColor: startEnabled ? "#d1d5dc" : "#686869",
+          }}
+          disabled={!startEnabled}
+          onClick={() => {
+            if (!startEnabled) return;
+            fetch(`${serverURL}/api/v1/service/${service.name}/start`, {
+              method: "PATCH",
+            }).then((resp) => {
+              if (resp.ok) {
+              }
+            });
+          }}
+        >
+          <VscDebugStart />
+        </button>
+        <button
+          style={{
+            backgroundColor: stopEnabled ? "#d1d5dc" : "#686869",
+          }}
+          className="bg-gray-300 px-2 py-1 rounded-sm hover:bg-gray-400 cursor-pointer"
+          title={
+            stopEnabled
+              ? "stop service"
+              : "cannot stop a dead or exited service"
+          }
+          disabled={!stopEnabled}
+          onClick={() => {
+            if (!stopEnabled) return;
+            fetch(`${serverURL}/api/v1/service/${service.name}/stop`, {
+              method: "PATCH",
+            });
+          }}
+        >
+          <BsXOctagonFill />
+        </button>
+        <button
+          style={{
+            backgroundColor: restartEnabled ? "#d1d5dc" : "#686869",
+          }}
+          className="px-2 py-1 rounded-sm hover:bg-gray-400 cursor-pointer"
+          title={
+            restartEnabled
+              ? "restart service"
+              : "cannot restart a dead or exited service"
+          }
+          disabled={!restartEnabled}
+          onClick={() => {
+            fetch(`${serverURL}/api/v1/service/${service.name}/restart`, {
+              method: "PATCH",
+            });
+          }}
+        >
+          <MdOutlineRestartAlt />
+        </button>
+      </>
+    );
+  }
   return (
     <div className="my-4">
       <div className="w-full flex flex-row justify-between">
@@ -87,68 +166,7 @@ function Service({
           </h2>
         </div>
         <div className="flex flex-row gap-2">
-          <button
-            className="px-2 py-1 rounded-sm hover:bg-gray-400 cursor-pointer"
-            title={
-              startEnabled
-                ? "start service"
-                : "cannot start; service already running"
-            }
-            style={{
-              backgroundColor: startEnabled ? "#d1d5dc" : "#686869",
-            }}
-            disabled={!startEnabled}
-            onClick={() => {
-              if (!startEnabled) return;
-              fetch(`${serverURL}/api/v1/service/${service.name}/start`, {
-                method: "PATCH",
-              }).then((resp) => {
-                if (resp.ok) {
-                }
-              });
-            }}
-          >
-            <VscDebugStart />
-          </button>
-          <button
-            style={{
-              backgroundColor: stopEnabled ? "#d1d5dc" : "#686869",
-            }}
-            className="bg-gray-300 px-2 py-1 rounded-sm hover:bg-gray-400 cursor-pointer"
-            title={
-              stopEnabled
-                ? "stop service"
-                : "cannot stop a dead or exited service"
-            }
-            disabled={!stopEnabled}
-            onClick={() => {
-              if (!stopEnabled) return;
-              fetch(`${serverURL}/api/v1/service/${service.name}/stop`, {
-                method: "PATCH",
-              });
-            }}
-          >
-            <BsXOctagonFill />
-          </button>
-          <button
-            style={{
-              backgroundColor: restartEnabled ? "#d1d5dc" : "#686869",
-            }}
-            className="px-2 py-1 rounded-sm hover:bg-gray-400 cursor-pointer"
-            title={
-              restartEnabled
-                ? "restart service"
-                : "cannot restart a dead or exited service"
-            }
-            disabled={!restartEnabled}
-            onClick={() => {
-              fetch(`${serverURL}/api/v1/service/${service.name}/restart`, {
-                method: "PATCH",
-              });
-            }}
-          >
-            <MdOutlineRestartAlt />
-          </button>
+          <StartStopRestartButtons />
           <button
             className="px-2 py-1 rounded-sm bg-gray-300 hover:bg-gray-400 cursor-pointer"
             title={"view logs for " + service.name}

@@ -24,6 +24,7 @@ var keyFile = os.Getenv("TLS_KEY_FILE")
 
 func main() {
 	slog.SetLogLoggerLevel(slog.LevelInfo)
+	authInit()
 	var sys system.System
 	switch runtime.GOOS {
 	case "linux", "darwin":
@@ -35,21 +36,32 @@ func main() {
 	app := fiber.New()
 
 	api := app.Group("/api/v1", cors.New(cors.Config{
-		AllowOrigins:  "*",
-		AllowHeaders:  "Origin, Content-Type, Accept, Authorization",
-		AllowMethods:  "GET, POST, PATCH, DELETE, OPTIONS",
-		ExposeHeaders: "Content-Length, Content-Type",
-		MaxAge:        3600,
-	}))
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowMethods:     "GET, POST, PATCH, DELETE, OPTIONS",
+		AllowCredentials: true,
+		ExposeHeaders:    "Content-Length, Content-Type",
+		MaxAge:           3600,
+		AllowOriginsFunc: func(origin string) bool {
+			return true
+		},
+	}), requireAuthMiddleware)
 
 	infoService := system.NewSystemInfoService(sys, time.Second*5)
 
+	api.Get("/auth", func(c *fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusOK)
+	})
 	api.Get("/info", func(c *fiber.Ctx) error {
 		info, err := infoService.GetSystemInfo()
 		if err != nil {
 			return sendErrorMap(c, fiber.StatusInternalServerError, err)
 		}
 		return c.JSON(info)
+	})
+	api.Get("/is_privileged", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"privileged": os.Geteuid() == 0,
+		})
 	})
 	api.Get("/info/ws", websocket.New(func(c *websocket.Conn) {
 		info, err := infoService.GetSystemInfo()
@@ -95,23 +107,7 @@ func main() {
 		}
 		return c.JSON(info.DynamicInfo.Processes[process])
 	})
-	// api.Post("/process/:pid/kill", func(c *fiber.Ctx) error {
-	// 	pid, err := c.ParamsInt("pid")
-	// 	if err != nil {
-	// 		return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid PID"))
-	// 	}
-	// 	err = syscall.Kill(pid, syscall.SIGKILL)
-	// 	return sendErrorMap(c, fiber.StatusInternalServerError, err)
-	// })
-	// api.Post("/process/:pid/terminate", func(c *fiber.Ctx) error {
-	// 	pid, err := c.ParamsInt("pid")
-	// 	if err != nil {
-	// 		return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid PID"))
-	// 	}
-	// 	err = syscall.Kill(pid, syscall.SIGTERM)
-	// 	return sendErrorMap(c, fiber.StatusInternalServerError, err)
-	// })
-	api.Post("/process/:pid/signal/:signal", func(c *fiber.Ctx) error {
+	api.Post("/process/:pid/signal/:signal", privilegeMiddleware, func(c *fiber.Ctx) error {
 		pid, err := c.ParamsInt("pid")
 		if err != nil {
 			return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid PID"))
