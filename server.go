@@ -49,7 +49,10 @@ func main() {
 	infoService := system.NewSystemInfoService(sys, time.Second*5)
 
 	api.Get("/auth", func(c *fiber.Ctx) error {
-		return c.SendStatus(fiber.StatusOK)
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"ok":            true,
+			"requires_auth": totpSecret != "" && jwtSecret != "",
+		})
 	})
 	api.Get("/info", func(c *fiber.Ctx) error {
 		info, err := infoService.GetSystemInfo()
@@ -99,13 +102,13 @@ func main() {
 		if err := sys.Shutdown(); err != nil {
 			return sendErrorMap(c, fiber.StatusInternalServerError, err)
 		}
-		return c.SendStatus(fiber.StatusOK) // most likely won't reach here
+		return c.SendStatus(fiber.StatusOK) // may never reach here
 	})
 	api.Post("/system/reboot", privilegeMiddleware, func(c *fiber.Ctx) error {
 		if err := sys.Reboot(); err != nil {
 			return sendErrorMap(c, fiber.StatusInternalServerError, err)
 		}
-		return c.SendStatus(fiber.StatusOK) // most likely won't reach here either
+		return c.SendStatus(fiber.StatusOK) // may never reach here
 	})
 	api.Get("/process/:pid", func(c *fiber.Ctx) error {
 		info, err := infoService.GetSystemInfo()

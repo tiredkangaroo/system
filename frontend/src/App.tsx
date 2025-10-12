@@ -25,6 +25,10 @@ function App() {
 
   const serverURLInput = useRef<HTMLInputElement>(null);
   if (serverURL === null) {
+    if (window.location.hash && window.location.hash.length > 1) {
+      const urlFromHash = decodeURIComponent(window.location.hash.slice(1));
+      setServerURL(urlFromHash);
+    }
     const storedURLs = JSON.parse(
       localStorage.getItem("serverURLS") || "[]"
     ) as string[];
@@ -184,6 +188,8 @@ interface SystemInfoDisplayProps {
 }
 function SystemInfoDisplay(props: SystemInfoDisplayProps) {
   const [hasPrivilege, setHasPrivilege] = useState<boolean | null>(null);
+  const [requiresAuth, setRequiresAuth] = useState<boolean | null>(null);
+
   useEffect(() => {
     if (!props.serverURL) return;
     fetch(`${props.serverURL}/api/v1/is_privileged`, {
@@ -197,6 +203,22 @@ function SystemInfoDisplay(props: SystemInfoDisplayProps) {
       })
       .catch((error) => {
         console.error("error fetching privilege status:", error);
+      });
+    fetch(`${props.serverURL}/api/v1/auth`, {
+      method: "GET",
+      credentials: "include",
+    })
+      .then((res) => {
+        if (res.status === 401) {
+          setRequiresAuth(true);
+        } else {
+          res.json().then((data) => {
+            setRequiresAuth(data.requires_auth);
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("error checking auth requirement:", error);
       });
   }, [props.serverURL]);
   return (
@@ -224,16 +246,31 @@ function SystemInfoDisplay(props: SystemInfoDisplayProps) {
               {hasPrivilege !== null && hasPrivilege ? (
                 <span
                   className="bg-green-400 text-white px-3 py-2 rounded-4xl text-sm"
-                  title="the system process is running as root"
+                  title="the system process is running with elevated privileges"
                 >
                   privileged
                 </span>
               ) : (
                 <span
                   className="bg-red-400 text-white px-3 py-2 rounded-4xl text-sm"
-                  title="the system process is not root -- some features may be disabled"
+                  title="the system process is not running with elevated privileges -- some features may be disabled"
                 >
                   unprivileged
+                </span>
+              )}
+              {requiresAuth !== null && requiresAuth ? (
+                <span
+                  className="bg-green-400 text-white px-3 py-2 rounded-4xl text-sm"
+                  title="the server requires authentication"
+                >
+                  authenticated
+                </span>
+              ) : (
+                <span
+                  className="bg-red-400 text-white px-3 py-2 rounded-4xl text-sm"
+                  title="the server does not require authentication (not secure)"
+                >
+                  no authentication
                 </span>
               )}
             </div>
@@ -266,7 +303,7 @@ function SystemInfoDisplay(props: SystemInfoDisplayProps) {
               )}
               <button
                 className="px-2 py-2 rounded-sm bg-gray-300 hover:bg-gray-400 cursor-pointer w-fit"
-                title="view system logs"
+                title={`view ${props.info.hostname} logs`}
                 onClick={() => {
                   props.setLogURL(`${props.serverURL}/api/v1/system/logs`);
                 }}
