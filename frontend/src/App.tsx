@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type SystemInfo } from "../types";
 import { StaticInfoView } from "./StaticInfo";
 import { DynamicInfoView } from "./DynamicInfo";
 import { ProcessesView } from "./Processes";
 import { ServicesView } from "./Services";
 import { LogsDialog } from "./LogsDialog";
-import { MdOutlineDescription } from "react-icons/md";
+import { MdOutlineDescription, MdOutlineRestartAlt } from "react-icons/md";
+import { CiPower } from "react-icons/ci";
+import { FaPowerOff } from "react-icons/fa6";
 
 function App() {
-  const [serverURL, setServerURL] = useState<string | null>(
-    localStorage.getItem("serverURL")
-  );
+  const [serverURL, setServerURL] = useState<string | null>(null);
   const [currentInfo, setCurrentInfo] = useState<SystemInfo | undefined>(
     undefined
   );
@@ -20,10 +20,35 @@ function App() {
     connectToWebSocket(serverURL, setCurrentInfo, setWsReadyState);
   }, [serverURL]);
 
+  const serverURLInput = useRef<HTMLInputElement>(null);
+  if (serverURL === null) {
+    const storedURL = localStorage.getItem("serverURL");
+    return (
+      <div className="w-full h-full p-2 flex flex-row gap-2 justify-center items-center">
+        <input
+          defaultValue={storedURL || ""}
+          autoFocus={true}
+          ref={serverURLInput}
+          className="border border-black rounded-md p-2 min-w-fit w-[30%] text-sm"
+        />
+        <button
+          className="px-2 py-2 rounded-sm bg-gray-300 hover:bg-gray-400 cursor-pointer w-fit"
+          onClick={() => {
+            const newURL = serverURLInput.current?.value;
+            if (newURL) {
+              setServerURL(newURL);
+              localStorage.setItem("serverURL", newURL);
+            }
+          }}
+        >
+          Connect
+        </button>
+      </div>
+    );
+  }
   return (
     <div className="w-full h-full p-2 flex flex-col gap-2">
       <LogsDialog logURL={logURL} setLogURL={setLogURL} />
-      <ServerURLInput serverURL={serverURL} setServerURL={setServerURL} />
       <SystemInfoDisplay
         serverURL={serverURL!}
         info={currentInfo}
@@ -119,30 +144,76 @@ function SystemInfoDisplay(props: SystemInfoDisplayProps) {
       {props.info ? (
         <>
           <div className="w-full flex flex-row justify-between items-center py-1 px-1">
-            <p
-              style={{
-                color:
-                  props.wsReadyState === WebSocket.OPEN ? "#05a839" : "#ab0c03",
-              }}
-              className="text-center"
-            >
+            <div className="flex flex-row gap-2">
+              {/* badges */}
               {props.wsReadyState === WebSocket.OPEN ? (
-                <>
-                  <b>connected to host</b> {privilegeText(hasPrivilege)}
-                </>
+                <span
+                  className="bg-green-400 text-white px-3 py-2 rounded-4xl text-sm"
+                  title="currently connected to server"
+                >
+                  connected
+                </span>
               ) : (
-                "not connected to host"
+                <span
+                  className="bg-red-400 text-white px-3 py-2 rounded-4xl text-sm"
+                  title="not currently connected to server"
+                >
+                  disconnected
+                </span>
               )}
-            </p>
-            <button
-              className="px-2 py-2 rounded-sm bg-gray-300 hover:bg-gray-400 cursor-pointer w-fit"
-              title="view system logs"
-              onClick={() => {
-                props.setLogURL(`${props.serverURL}/api/v1/logs`);
-              }}
-            >
-              <MdOutlineDescription />
-            </button>
+              {hasPrivilege !== null && hasPrivilege ? (
+                <span
+                  className="bg-green-400 text-white px-3 py-2 rounded-4xl text-sm"
+                  title="the system process is running as root"
+                >
+                  privileged
+                </span>
+              ) : (
+                <span
+                  className="bg-red-400 text-white px-3 py-2 rounded-4xl text-sm"
+                  title="the system process is not root -- some features may be disabled"
+                >
+                  unprivileged
+                </span>
+              )}
+            </div>
+            <div className="flex flex-row gap-2">
+              {hasPrivilege && (
+                <>
+                  <button
+                    className="px-2 py-2 rounded-sm bg-gray-300 hover:bg-gray-400 cursor-pointer w-fit"
+                    title={"shutdown " + props.info.hostname}
+                    onClick={() => {
+                      fetch(`${props.serverURL}/api/v1/system/shutdown`, {
+                        method: "POST",
+                      });
+                    }}
+                  >
+                    <FaPowerOff />
+                  </button>
+                  <button
+                    className="px-2 py-2 rounded-sm bg-gray-300 hover:bg-gray-400 cursor-pointer w-fit"
+                    title={"reboot " + props.info.hostname}
+                    onClick={() => {
+                      fetch(`${props.serverURL}/api/v1/system/reboot`, {
+                        method: "POST",
+                      });
+                    }}
+                  >
+                    <MdOutlineRestartAlt />
+                  </button>
+                </>
+              )}
+              <button
+                className="px-2 py-2 rounded-sm bg-gray-300 hover:bg-gray-400 cursor-pointer w-fit"
+                title="view system logs"
+                onClick={() => {
+                  props.setLogURL(`${props.serverURL}/api/v1/system/logs`);
+                }}
+              >
+                <MdOutlineDescription />
+              </button>
+            </div>
           </div>
           <StaticInfoView info={props.info} />
           <DynamicInfoView info={props.info} />
@@ -163,17 +234,6 @@ function SystemInfoDisplay(props: SystemInfoDisplayProps) {
         <LoadingScreen></LoadingScreen>
       )}
     </div>
-  );
-}
-
-function privilegeText(privileged: boolean | null) {
-  if (privileged === null) {
-    return null;
-  }
-  return privileged ? (
-    <span style={{ color: "#05a839" }}>with privilege</span>
-  ) : (
-    <span style={{ color: "#ab0c03" }}>without privilege</span>
   );
 }
 
@@ -200,27 +260,6 @@ function LoadingScreen() {
         />
       </svg>
       <span className="sr-only">Loading...</span>
-    </div>
-  );
-}
-
-interface ServerURLInputProps {
-  serverURL: string | null;
-  setServerURL: (url: string) => void;
-}
-function ServerURLInput(props: ServerURLInputProps) {
-  return (
-    <div className="flex flex-row gap-2 justify-center items-center">
-      URL:
-      <input
-        type="text"
-        defaultValue={props.serverURL || ""}
-        onBlur={(e) => {
-          props.setServerURL(e.target.value);
-          localStorage.setItem("serverURL", e.target.value);
-        }}
-        className="border border-gray-600 rounded-md py-1 px-2 w-full text-sm"
-      />
     </div>
   );
 }

@@ -13,6 +13,9 @@ type System interface {
 	StartService(serviceName string) error
 	StopService(serviceName string) error
 	RestartService(serviceName string) error
+
+	Shutdown() error
+	Reboot() error
 }
 
 type LogOptions struct {
