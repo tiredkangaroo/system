@@ -95,13 +95,13 @@ func main() {
 		reader, err := sys.GetSystemLogs(logOptions)
 		return sendReader(c, reader, err)
 	})
-	api.Get("/system/shutdown", privilegeMiddleware, func(c *fiber.Ctx) error {
+	api.Post("/system/shutdown", privilegeMiddleware, func(c *fiber.Ctx) error {
 		if err := sys.Shutdown(); err != nil {
 			return sendErrorMap(c, fiber.StatusInternalServerError, err)
 		}
 		return c.SendStatus(fiber.StatusOK) // most likely won't reach here
 	})
-	api.Get("/system/reboot", privilegeMiddleware, func(c *fiber.Ctx) error {
+	api.Post("/system/reboot", privilegeMiddleware, func(c *fiber.Ctx) error {
 		if err := sys.Reboot(); err != nil {
 			return sendErrorMap(c, fiber.StatusInternalServerError, err)
 		}
