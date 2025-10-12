@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Service, SystemInfo } from "../types";
 import { Paginated, Search } from "./Paginated";
-import { MdOutlineRestartAlt } from "react-icons/md";
+import { MdOutlineDescription, MdOutlineRestartAlt } from "react-icons/md";
 import { BsXOctagonFill } from "react-icons/bs";
 import { VscDebugStart } from "react-icons/vsc";
 
@@ -15,9 +15,11 @@ const statusOrder: Record<Service["status"], number> = {
 export function ServicesView({
   info,
   serverURL,
+  setLogURL,
 }: {
   info: SystemInfo;
   serverURL: string;
+  setLogURL: (url: string | null) => void;
 }) {
   const [filteredServices, setFilteredServices] = useState<Service[]>(
     info.services
@@ -44,7 +46,11 @@ export function ServicesView({
           elements={filteredServices
             .sort((a, b) => statusOrder[a.status] - statusOrder[b.status])
             .map((v, _) => (
-              <Service service={v} serverURL={serverURL} />
+              <Service
+                service={v}
+                serverURL={serverURL}
+                setLogURL={setLogURL}
+              />
             ))}
           pageNumber={pageNumber}
           setPageNumber={setPageNumber}
@@ -58,9 +64,11 @@ export function ServicesView({
 function Service({
   service,
   serverURL,
+  setLogURL,
 }: {
   service: Service;
   serverURL: string;
+  setLogURL: (url: string | null) => void;
 }) {
   const startEnabled = service.status !== "running";
   const stopEnabled =
@@ -140,6 +148,15 @@ function Service({
             }}
           >
             <MdOutlineRestartAlt />
+          </button>
+          <button
+            className="px-2 py-1 rounded-sm bg-gray-300 hover:bg-gray-400 cursor-pointer"
+            title={"view logs for " + service.name}
+            onClick={() => {
+              setLogURL(`${serverURL}/api/v1/service/${service.name}/logs`);
+            }}
+          >
+            <MdOutlineDescription />
           </button>
         </div>
       </div>
