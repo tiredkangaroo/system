@@ -5,7 +5,11 @@ import { DynamicInfoView } from "./DynamicInfo";
 import { ProcessesView } from "./Processes";
 import { ServicesView } from "./Services";
 import { LogsDialog } from "./LogsDialog";
-import { MdOutlineDescription, MdOutlineRestartAlt } from "react-icons/md";
+import {
+  MdDeleteOutline,
+  MdOutlineDescription,
+  MdOutlineRestartAlt,
+} from "react-icons/md";
 import { FaPowerOff } from "react-icons/fa6";
 
 function App() {
@@ -21,27 +25,44 @@ function App() {
 
   const serverURLInput = useRef<HTMLInputElement>(null);
   if (serverURL === null) {
-    const storedURL = localStorage.getItem("serverURL");
+    const storedURLs = JSON.parse(
+      localStorage.getItem("serverURLS") || "[]"
+    ) as string[];
     return (
-      <div className="w-full h-full p-2 flex flex-row gap-2 justify-center items-center">
-        <input
-          defaultValue={storedURL || ""}
-          autoFocus={true}
-          ref={serverURLInput}
-          className="border border-black rounded-md p-2 min-w-fit w-[30%] text-sm"
+      <div className="w-full h-full p-2 flex flex-col gap-2 justify-center items-center">
+        <div className="flex flex-row gap-2 items-center w-full justify-center">
+          <input
+            autoFocus={true}
+            ref={serverURLInput}
+            className="border border-black rounded-md p-2 text-sm min-w-fit w-[50%]"
+            placeholder="Enter server URL (e.g. http://localhost:8080)"
+          />
+          <button
+            className="px-2 py-2 rounded-sm bg-gray-300 hover:bg-gray-400 cursor-pointer w-fit"
+            onClick={() => {
+              const newURL = serverURLInput.current?.value;
+              if (newURL) {
+                setServerURL(newURL);
+                let newStoredURLs = storedURLs;
+                if (newStoredURLs.length > 4) {
+                  newStoredURLs = storedURLs.slice(0, 4);
+                }
+                localStorage.setItem(
+                  "serverURLS",
+                  JSON.stringify(
+                    Array.from(new Set([newURL, ...newStoredURLs]))
+                  )
+                );
+              }
+            }}
+          >
+            Connect
+          </button>
+        </div>
+        <PreviousServers
+          srvURLRef={serverURLInput}
+          previousServers={storedURLs}
         />
-        <button
-          className="px-2 py-2 rounded-sm bg-gray-300 hover:bg-gray-400 cursor-pointer w-fit"
-          onClick={() => {
-            const newURL = serverURLInput.current?.value;
-            if (newURL) {
-              setServerURL(newURL);
-              localStorage.setItem("serverURL", newURL);
-            }
-          }}
-        >
-          Connect
-        </button>
       </div>
     );
   }
@@ -54,6 +75,46 @@ function App() {
         wsReadyState={wsReadyState}
         setLogURL={setLogURL}
       />
+    </div>
+  );
+}
+
+function PreviousServers(props: {
+  previousServers: Array<string>;
+  srvURLRef: React.RefObject<HTMLInputElement | null>;
+}) {
+  if (props.previousServers.length === 0) return null;
+  return (
+    <div className="w-full flex flex-col gap-2 items-center mt-4">
+      <h2 className="text-xl font-semibold">Previous Servers</h2>
+      <div className="flex flex-col gap-2 flex-wrap justify-center">
+        {props.previousServers.map((url, idx) => (
+          <div className="gap-1 flex flex-row items-center">
+            <button
+              key={idx}
+              className="px-2 py-1 rounded-sm cursor-pointer text-blue-400 underline"
+              onClick={() => {
+                if (props.srvURLRef.current) {
+                  props.srvURLRef.current.value = url;
+                }
+              }}
+            >
+              {url}
+            </button>
+            <button
+              className="cursor-pointer"
+              title="delete from list"
+              onClick={() => {
+                const newList = props.previousServers.filter((u) => u !== url);
+                localStorage.setItem("serverURLS", JSON.stringify(newList));
+                window.location.reload();
+              }}
+            >
+              <MdDeleteOutline />
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
