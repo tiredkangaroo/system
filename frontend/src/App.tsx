@@ -6,7 +6,6 @@ import { ProcessesView } from "./Processes";
 import { ServicesView } from "./Services";
 import { LogsDialog } from "./LogsDialog";
 import { MdOutlineDescription, MdOutlineRestartAlt } from "react-icons/md";
-import { CiPower } from "react-icons/ci";
 import { FaPowerOff } from "react-icons/fa6";
 
 function App() {
