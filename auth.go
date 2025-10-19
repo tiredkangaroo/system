@@ -66,7 +66,7 @@ func requireAuthMiddleware(c *fiber.Ctx) error {
 		Value:    signed,
 		HTTPOnly: true,
 		Secure:   true,
-		SameSite: "Lax",
+		SameSite: fiber.CookieSameSiteNoneMode,
 		Expires:  time.Now().Add(24 * time.Hour),
 	})
 	return c.Next()
