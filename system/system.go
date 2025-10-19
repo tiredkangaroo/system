@@ -49,6 +49,7 @@ type StaticInfo struct {
 
 type DynamicInfo struct {
 	CPU_Usage float64 `json:"cpu_usage"` // cpu usage percentage
+	CPU_Temp  float64 `json:"cpu_temp"`  // cpu temperature in celsius
 
 	MemoryUsed  uint64 `json:"memory_used"`  // used memory in bytes
 	StorageUsed uint64 `json:"storage_used"` // used storage in bytes

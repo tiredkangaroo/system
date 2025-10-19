@@ -78,6 +78,11 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 	}
 	info.CPU_Usage = usages[0] // cpu usage percentage
 
+	info.CPU_Temp, err = getCPUTemp()
+	if err != nil {
+		slog.Error("cannot get cpu temperature", "error", err)
+	}
+
 	memstat, err := mem.VirtualMemory()
 	if err != nil {
 		return info, err
@@ -126,6 +131,18 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 		slog.Error("cannot get services", "error", err)
 	}
 	return info, nil
+}
+
+func getCPUTemp() (float64, error) {
+	data, err := os.ReadFile("/sys/class/thermal/thermal_zone*/temp")
+	if err != nil {
+		return -1, err
+	}
+	temp, err := strconv.Atoi(strings.TrimSpace(string(data)))
+	if err != nil {
+		return -1, err
+	}
+	return float64(temp) / 1000.0, nil
 }
 
 func getCurrentProcesses() ([]system.Process, error) {
