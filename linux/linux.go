@@ -134,7 +134,7 @@ func getDynamicSysInfo(hasBattery bool) (system.DynamicInfo, error) {
 }
 
 func getCPUTemp() (float64, error) {
-	data, err := os.ReadFile("/sys/class/thermal/thermal_zone*/temp")
+	data, err := os.ReadFile("/sys/class/thermal/thermal_zone0/temp")
 	if err != nil {
 		return -1, err
 	}
