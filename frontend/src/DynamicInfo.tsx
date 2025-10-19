@@ -13,47 +13,69 @@ export function DynamicInfoView(props: { info: SystemInfo }) {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 pl-3">
-        <div className="flex flex-col gap-2">
-          cpu usage: {props.info.cpu_usage.toFixed(2)}%
-          <PercentageBar percentage={props.info.cpu_usage} />
-        </div>
-        <div className="flex flex-col gap-2">
-          memory usage:{" "}
-          {((props.info.memory_used / props.info.memory) * 100).toFixed(2)}%
-          <PercentageBar
-            percentage={(props.info.memory_used / props.info.memory) * 100}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          storage usage: {memoryString(props.info.storage_used)} /{" "}
-          {memoryString(props.info.storage_capacity)} bytes (
-          {(
-            (props.info.storage_used / props.info.storage_capacity) *
-            100
-          ).toFixed(2)}
-          %)
-          <PercentageBar
-            percentage={
-              (props.info.storage_used / props.info.storage_capacity) * 100
-            }
-          />
-        </div>
-        {props.info.has_battery ? (
+        {props.info.cpu_usage !== undefined && props.info.cpu_usage !== -1 && (
+          <div className="flex flex-col gap-2">
+            cpu usage: {props.info.cpu_usage.toFixed(2)}%
+            <PercentageBar percentage={props.info.cpu_usage} />
+          </div>
+        )}
+        {props.info.cpu_temp !== undefined && props.info.cpu_temp !== -1 && (
+          <p>
+            cpu temperature:{" "}
+            <span style={{ color: temperatureColor(props.info.cpu_temp) }}>
+              {props.info.cpu_temp}°C
+            </span>
+          </p>
+        )}
+        {props.info.memory_used !== undefined &&
+          props.info.memory_used !== -1 && (
+            <div className="flex flex-col gap-2">
+              memory usage: {memoryString(props.info.memory_used)} /{" "}
+              {memoryString(props.info.memory)} bytes (
+              {((props.info.memory_used / props.info.memory) * 100).toFixed(2)}
+              %)
+              <PercentageBar
+                percentage={(props.info.memory_used / props.info.memory) * 100}
+              />
+            </div>
+          )}
+        {props.info.storage_used !== undefined &&
+          props.info.storage_used !== -1 && (
+            <div className="flex flex-col gap-2">
+              storage usage: {memoryString(props.info.storage_used)} /{" "}
+              {memoryString(props.info.storage_capacity)} bytes (
+              {(
+                (props.info.storage_used / props.info.storage_capacity) *
+                100
+              ).toFixed(2)}
+              %)
+              <PercentageBar
+                percentage={
+                  (props.info.storage_used / props.info.storage_capacity) * 100
+                }
+              />
+            </div>
+          )}
+        {props.info.has_battery && (
           <div className="flex flex-col gap-2">
             <p>
               battery: {battery_percent}% (status {props.info.battery_status})
             </p>
             <PercentageBar percentage={battery_percent} reverseColor={true} />{" "}
           </div>
-        ) : null}
-        {props.info.has_battery ? (
-          <p>
-            battery temperature:{" "}
-            <span style={{ color: temperatureColor(props.info.battery_temp) }}>
-              {props.info.battery_temp}°C
-            </span>
-          </p>
-        ) : null}
+        )}
+        {props.info.has_battery &&
+          props.info.battery_temp !== undefined &&
+          props.info.battery_temp !== -1 && (
+            <p>
+              battery temperature:{" "}
+              <span
+                style={{ color: temperatureColor(props.info.battery_temp) }}
+              >
+                {props.info.battery_temp}°C
+              </span>
+            </p>
+          )}
         <p>uptime: {(props.info.uptime / 3600).toFixed(2)} hours </p>
       </div>
     </div>

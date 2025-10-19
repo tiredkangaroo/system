@@ -10,13 +10,14 @@ export interface SystemInfo {
   has_battery: boolean; // used
   battery: string; // used
   cpu_usage: number; // used
+  cpu_temp: number;
   memory_used: number; // used
   storage_used: number; // used
   battery_temp: number; // used
   battery_percent: number; // used
   battery_status: string; // used
   processes: Process[]; // used
-  services: Service[];
+  services: Service[]; // used
   uptime: number; // used
 }
 
