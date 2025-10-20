@@ -105,10 +105,20 @@ logs are retrieved using `journalctl`.
 
 ![web interface](https://raw.githubusercontent.com/tiredkangaroo/system/refs/heads/main/screenshots/1.png)
 
+<p style="text-align: center;">the web interface</p>
+
 ![services showing on the web interface](https://raw.githubusercontent.com/tiredkangaroo/system/refs/heads/main/screenshots/2.png)
+
+<p style="text-align: center;">services showing on the web interface</p>
 
 ![logs of a service](https://raw.githubusercontent.com/tiredkangaroo/system/refs/heads/main/screenshots/3.png)
 
+<p style="text-align: center;">logs of a service</p>
+
 ![system logs](https://raw.githubusercontent.com/tiredkangaroo/system/refs/heads/main/screenshots/4.png)
 
+<p style="text-align: center;">system logs</p>
+
 ![sending a signal to a process (sshd)](https://raw.githubusercontent.com/tiredkangaroo/system/refs/heads/main/screenshots/5.png)
+
+<p style="text-align: center;">sending a signal to a process (sshd)</p>
