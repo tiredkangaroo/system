@@ -1,9 +1,11 @@
 package main
 
 import (
+	"crypto/tls"
 	"errors"
 	"io"
 	"log/slog"
+	"net"
 	"os"
 	"runtime"
 	"slices"
@@ -189,14 +191,39 @@ func main() {
 		return sendErrorMap(c, fiber.StatusInternalServerError, err)
 	})
 
-	var err error
-	if certFile != "" && keyFile != "" {
-		slog.Info("starting server with TLS")
-		err = app.ListenTLS(":9100", certFile, keyFile)
-	} else {
-		slog.Info("starting server without TLS")
-		err = app.Listen(":9100")
+	// create listener with addr
+	addr := os.Getenv("LISTEN_ADDR")
+	if addr == "" {
+		addr = ":0"
 	}
+
+	listener, err := net.Listen("tcp4", addr)
+	if err != nil {
+		slog.Error("create listener", "error", err)
+		return
+	}
+	slog.Info("listening on", "addr", listener.Addr().String())
+	defer listener.Close()
+
+	if certFile != "" && keyFile != "" {
+		// if TLS cert and key provided, use them
+		// to get a tls.Certificate -> then wrap listener
+		// with a tls listener
+		var cert tls.Certificate
+		cert, err = tls.LoadX509KeyPair(certFile, keyFile)
+		if err != nil {
+			slog.Error("load x509 tls key pair", "error", err)
+			return
+		}
+		err = app.Listener(tls.NewListener(listener, &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}))
+	} else {
+		slog.Warn("TLS disabled, set TLS_CERT_FILE and TLS_KEY_FILE env vars with valid x509 certs to enable")
+		// no TLS, use plain listener
+		err = app.Listener(listener)
+	}
+
 	if err != nil {
 		slog.Error("server", "error", err)
 	}
