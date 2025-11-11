@@ -6,6 +6,7 @@ import (
 	"os"
 	user "os/user"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -29,24 +30,39 @@ var commonShells = []string{
 	"pwsh",
 }
 
-func (ls *LinuxSystem) ListUsers() ([]user.User, error) {
+func (ls *LinuxSystem) ListUsers() ([]system.User, error) {
 	data, err := os.ReadFile("/etc/passwd")
 	if err != nil {
 		return nil, err
 	}
 	lines := strings.Split(string(data), "\n")
-	var users []user.User
+	var users []system.User
 	for _, line := range lines {
 		parts := strings.SplitN(line, ":", 7) // where first part is username, second part is rest
 		if len(parts) < 7 {
 			continue
 		}
-		users = append(users, user.User{
-			Username: parts[0],
-			Uid:      parts[2],
-			Gid:      parts[3],
-			Name:     parts[4],
-			HomeDir:  parts[5],
+		username := parts[0]
+
+		var publicSSHKeys []system.SSHPublicKey
+		shell := parts[6]
+		shellSplit := strings.Split(shell, "/")
+		shellName := shellSplit[len(shellSplit)-1]
+		if slices.Contains(commonShells, shellName) {
+			publicSSHKeys, err = ls.ListSSHPublicKeys(username)
+			if err != nil {
+				slog.Error("list ssh public keys", "username", username, "error", err)
+			}
+		} else {
+			slog.Info("skipping ssh public key listing for user with non-shell shell", "username", username, "shell", shell)
+		}
+		users = append(users, system.User{
+			Username:      parts[0],
+			Uid:           parts[2],
+			Gid:           parts[3],
+			Name:          parts[4],
+			HomeDir:       parts[5],
+			SSHPublicKeys: publicSSHKeys,
 		})
 	}
 	return users, nil
@@ -83,9 +99,20 @@ func (ls *LinuxSystem) ListSSHPublicKeys(username string) ([]system.SSHPublicKey
 		if len(parts) >= 3 {
 			keyName = strings.Join(parts[2:], " ") // join the rest as name
 		}
+		// ensure no duplicates are returned
+		var duplicate bool
+		for _, k := range keys {
+			if k.Type == keyType && k.Key == keyData && k.Name == keyName {
+				duplicate = true
+				break
+			}
+		}
+		if duplicate {
+			continue
+		}
 		keys = append(keys, system.SSHPublicKey{
 			Type: keyType,
-			Key:  keyData,
+			Key:  "omit",
 			Name: keyName,
 		})
 	}
@@ -130,7 +157,7 @@ func (ls *LinuxSystem) AddSSHPublicKey(username string, publicKey string) error 
 	return nil
 }
 
-func (ls *LinuxSystem) RemoveSSHPublicKey(username string, keyName string) error {
+func (ls *LinuxSystem) RemoveSSHPublicKey(username string, keyName string) error { // will remove all instances of the key with the given name (including duplicates)
 	return fmt.Errorf("not implemented for linux")
 }
 

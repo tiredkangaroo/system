@@ -2,7 +2,6 @@ package system
 
 import (
 	"io"
-	"os/user"
 	"time"
 )
 
@@ -15,9 +14,8 @@ type System interface {
 	StopService(serviceName string) error
 	RestartService(serviceName string) error
 
-	ListUsers() ([]user.User, error)
+	ListUsers() ([]User, error)
 
-	ListSSHPublicKeys(user string) ([]SSHPublicKey, error)
 	AddSSHPublicKey(user string, keyString string) error
 	RemoveSSHPublicKey(user string, keyName string) error
 
@@ -25,10 +23,19 @@ type System interface {
 	Reboot() error
 }
 
+type User struct {
+	Username      string         `json:"username"`
+	Uid           string         `json:"uid"`
+	Gid           string         `json:"gid"`
+	Name          string         `json:"name"`
+	HomeDir       string         `json:"home_dir"`
+	SSHPublicKeys []SSHPublicKey `json:"ssh_public_keys"`
+}
+
 type SSHPublicKey struct {
-	Type string // ssh-rsa, ssh-ed25519, etc.
-	Key  string // the actual key
-	Name string // the name at the end of the key
+	Type string `json:"type"` // ssh-rsa, ssh-ed25519, etc.
+	Key  string `json:"key"`  // the actual key
+	Name string `json:"name"` // the name at the end of the key
 }
 
 type LogOptions struct {

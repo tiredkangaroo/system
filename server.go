@@ -190,20 +190,12 @@ func main() {
 		err := sys.RestartService(name)
 		return sendErrorMap(c, fiber.StatusInternalServerError, err)
 	})
-	api.Get("/users", func(c *fiber.Ctx) error {
+	api.Get("/users", privilegeMiddleware, func(c *fiber.Ctx) error {
 		users, err := sys.ListUsers()
 		if err != nil {
 			return sendErrorMap(c, fiber.StatusInternalServerError, err)
 		}
 		return c.JSON(users)
-	})
-	api.Get("/users/:username/ssh_keys", privilegeMiddleware, func(c *fiber.Ctx) error {
-		username := c.Params("username")
-		keys, err := sys.ListSSHPublicKeys(username)
-		if err != nil {
-			return sendErrorMap(c, fiber.StatusInternalServerError, err)
-		}
-		return c.JSON(keys)
 	})
 	api.Post("/users/:username/ssh_keys", privilegeMiddleware, func(c *fiber.Ctx) error {
 		username := c.Params("username")
