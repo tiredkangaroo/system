@@ -84,6 +84,9 @@ func (ls *LinuxSystem) ListSSHPublicKeys(username string) ([]system.SSHPublicKey
 
 	var keys []system.SSHPublicKey
 	lines := strings.Split(string(data), "\n")
+	if len(lines) == 0 {
+		return []system.SSHPublicKey{}, nil // non-nil empty slice
+	}
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") { // skip empty lines and comments

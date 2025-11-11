@@ -38,3 +38,17 @@ export interface Service {
   status: string;
   description: string;
 }
+
+export interface User {
+  username: string;
+  uid: string;
+  gid: string;
+  name: string;
+  home_dir: string;
+  ssh_public_keys: SSHPublicKey[] | null;
+}
+export interface SSHPublicKey {
+  type: string;
+  key: string;
+  name: string;
+}

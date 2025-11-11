@@ -11,7 +11,7 @@ import {
   MdOutlineRestartAlt,
 } from "react-icons/md";
 import { FaPowerOff } from "react-icons/fa6";
-import { SSHView } from "./SSH";
+import { UsersView } from "./Users";
 
 function App() {
   const [serverURL, setServerURL] = useState<string | null>(null);
@@ -327,7 +327,7 @@ function SystemInfoDisplay(props: SystemInfoDisplayProps) {
             setLogURL={props.setLogURL}
             hasPrivilege={hasPrivilege}
           />
-          <SSHView serverURL={props.serverURL} hasPrivilege={hasPrivilege} />
+          <UsersView serverURL={props.serverURL} hasPrivilege={hasPrivilege} />
         </>
       ) : (
         <LoadingScreen></LoadingScreen>
