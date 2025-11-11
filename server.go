@@ -190,6 +190,38 @@ func main() {
 		err := sys.RestartService(name)
 		return sendErrorMap(c, fiber.StatusInternalServerError, err)
 	})
+	api.Get("/users", func(c *fiber.Ctx) error {
+		users, err := sys.ListUsers()
+		if err != nil {
+			return sendErrorMap(c, fiber.StatusInternalServerError, err)
+		}
+		return c.JSON(users)
+	})
+	api.Get("/users/:username/ssh_keys", privilegeMiddleware, func(c *fiber.Ctx) error {
+		username := c.Params("username")
+		keys, err := sys.ListSSHPublicKeys(username)
+		if err != nil {
+			return sendErrorMap(c, fiber.StatusInternalServerError, err)
+		}
+		return c.JSON(keys)
+	})
+	api.Post("/users/:username/ssh_keys", privilegeMiddleware, func(c *fiber.Ctx) error {
+		username := c.Params("username")
+		var body struct {
+			PublicKey string `json:"public_key"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return sendErrorMap(c, fiber.StatusBadRequest, errors.New("invalid request body"))
+		}
+		err := sys.AddSSHPublicKey(username, body.PublicKey)
+		return sendErrorMap(c, fiber.StatusInternalServerError, err)
+	})
+	api.Delete("/users/:username/ssh_keys/:key_name", privilegeMiddleware, func(c *fiber.Ctx) error {
+		username := c.Params("username")
+		keyName := c.Params("key_name")
+		err := sys.RemoveSSHPublicKey(username, keyName)
+		return sendErrorMap(c, fiber.StatusInternalServerError, err)
+	})
 
 	// create listener with addr
 	addr := os.Getenv("LISTEN_ADDR")

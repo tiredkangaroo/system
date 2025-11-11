@@ -2,6 +2,7 @@ package system
 
 import (
 	"io"
+	"os/user"
 	"time"
 )
 
@@ -14,8 +15,20 @@ type System interface {
 	StopService(serviceName string) error
 	RestartService(serviceName string) error
 
+	ListUsers() ([]user.User, error)
+
+	ListSSHPublicKeys(user string) ([]SSHPublicKey, error)
+	AddSSHPublicKey(user string, keyString string) error
+	RemoveSSHPublicKey(user string, keyName string) error
+
 	Shutdown() error
 	Reboot() error
+}
+
+type SSHPublicKey struct {
+	Type string // ssh-rsa, ssh-ed25519, etc.
+	Key  string // the actual key
+	Name string // the name at the end of the key
 }
 
 type LogOptions struct {
