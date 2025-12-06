@@ -1,7 +1,6 @@
 package linux
 
 import (
-	"fmt"
 	"log/slog"
 	"os"
 	user "os/user"
@@ -69,17 +68,15 @@ func (ls *LinuxSystem) ListUsers() ([]system.User, error) {
 }
 
 func (ls *LinuxSystem) ListSSHPublicKeys(username string) ([]system.SSHPublicKey, error) {
-	u, err := user.Lookup(username)
+	_, authKeysFilename, err := userAuthKeysFilename(username)
 	if err != nil {
-		slog.Error("lookup user", "username", username, "error", err)
-		return nil, ErrUserNotFound
+		return nil, err
 	}
 
-	authKeysFilename := filepath.Join(u.HomeDir, ".ssh", "authorized_keys")
 	data, err := os.ReadFile(authKeysFilename)
 	if err != nil {
-		slog.Error("read authorized_keys file", "file", authKeysFilename, "error", err)
-		return nil, err
+		os.WriteFile(authKeysFilename, []byte(""), 0600) // create empty file if not exists
+		return []system.SSHPublicKey{}, nil
 	}
 
 	var keys []system.SSHPublicKey
@@ -123,22 +120,10 @@ func (ls *LinuxSystem) ListSSHPublicKeys(username string) ([]system.SSHPublicKey
 }
 
 func (ls *LinuxSystem) AddSSHPublicKey(username string, publicKey string) error {
-	u, err := user.Lookup(username)
+	u, authKeysFilename, err := userAuthKeysFilename(username)
 	if err != nil {
-		slog.Error("lookup user", "username", username, "error", err)
-		return ErrUserNotFound
-	}
-
-	sshDir := filepath.Join(u.HomeDir, ".ssh")
-	if err := os.MkdirAll(sshDir, 0700); err != nil { // create .ssh dir if not exists
-		slog.Error("create .ssh directory", "dir", sshDir, "error", err)
 		return err
 	}
-	if err := os.Chown(sshDir, atoi(u.Uid), atoi(u.Gid)); err != nil { // ensure perms for the dir
-		slog.Error("chown .ssh directory", "dir", sshDir, "error", err)
-		return err
-	}
-	authKeysFilename := filepath.Join(sshDir, "authorized_keys")
 
 	f, err := os.OpenFile(authKeysFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	if err != nil {
@@ -161,10 +146,66 @@ func (ls *LinuxSystem) AddSSHPublicKey(username string, publicKey string) error 
 }
 
 func (ls *LinuxSystem) RemoveSSHPublicKey(username string, keyName string) error { // will remove all instances of the key with the given name (including duplicates)
-	return fmt.Errorf("not implemented for linux")
+	_, authKeysFilename, err := userAuthKeysFilename(username)
+	if err != nil {
+		return err
+	}
+
+	data, err := os.ReadFile(authKeysFilename)
+	if err != nil {
+		slog.Error("read authorized_keys file", "file", authKeysFilename, "error", err)
+		return err
+	}
+
+	var newLines []string
+	lines := strings.Split(string(data), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") { // keep empty lines and comments
+			newLines = append(newLines, line)
+			continue
+		}
+		parts := strings.Fields(line)
+		if len(parts) < 3 {
+			newLines = append(newLines, line) // keep invalid lines
+			continue
+		}
+		lineKeyName := parts[2]
+		if keyName == lineKeyName {
+			continue // skip this line (remove)
+		}
+		newLines = append(newLines, line) // keep this line
+	}
+
+	newData := strings.Join(newLines, "\n")
+	if err := os.WriteFile(authKeysFilename, []byte(newData), 0600); err != nil {
+		slog.Error("write authorized_keys file", "file", authKeysFilename, "error", err)
+		return err
+	}
+	return nil
 }
 
 func atoi(s string) int {
 	n, _ := strconv.Atoi(s)
 	return n
+}
+
+func userAuthKeysFilename(username string) (*user.User, string, error) {
+	u, err := user.Lookup(username)
+	if err != nil {
+		slog.Error("lookup user", "username", username, "error", err)
+		return nil, "", ErrUserNotFound
+	}
+
+	sshDir := filepath.Join(u.HomeDir, ".ssh")
+	if err := os.MkdirAll(sshDir, 0700); err != nil { // create .ssh dir if not exists
+		slog.Error("create .ssh directory", "dir", sshDir, "error", err)
+		return nil, "", err
+	}
+	if err := os.Chown(sshDir, atoi(u.Uid), atoi(u.Gid)); err != nil { // ensure perms for the dir
+		slog.Error("chown .ssh directory", "dir", sshDir, "error", err)
+		return nil, "", err
+	}
+	authKeysFilename := filepath.Join(sshDir, "authorized_keys")
+	return u, authKeysFilename, nil
 }
